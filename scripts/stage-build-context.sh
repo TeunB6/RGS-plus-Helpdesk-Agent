@@ -71,3 +71,20 @@ tar -C "${REPO_DIR}" \
 echo "staged ${HERMES_CONTEXT} + this repo's library/ clients/ -> ${OUT}"
 echo "  client dir : $(ls -d "${OUT}/clients/rgsplus" 2>/dev/null || echo 'MISSING — build will fall back to the default client')"
 echo "  atlassian  : $(ls "${OUT}/library/tools/support/atlassian/plugin.yaml" 2>/dev/null || echo 'MISSING')"
+echo "  faq        : $(ls "${OUT}/library/tools/support/rgsplus-faq/plugin.yaml" 2>/dev/null || echo 'MISSING')"
+echo "  import_chk : $(ls "${OUT}/library/tools/support/import_check/plugin.yaml" 2>/dev/null || echo 'MISSING')"
+
+# import_check is the one plugin here with a third-party dependency, and the
+# package has to be installed by the BASE image — which this repo does not own.
+# Left unchecked, the failure surfaces as the bot telling a customer it cannot
+# read their workbook, long after the build looked fine. So check at staging
+# time, where it is still cheap to fix.
+if ! grep -rqi '^[[:space:]]*openpyxl' "${OUT}"/requirements*.txt "${OUT}"/*/requirements*.txt 2>/dev/null \
+   && ! grep -rqi 'openpyxl' "${OUT}/Dockerfile" 2>/dev/null; then
+    echo
+    echo "  WARNING: openpyxl is not installed by ${HERMES_CONTEXT}." >&2
+    echo "           import_check needs it to open .xlsx files and will return" >&2
+    echo "           an error instead of a validation for every workbook." >&2
+    echo "           Add openpyxl to the uppr_hermes image's requirements and" >&2
+    echo "           re-run this script. Everything else still builds." >&2
+fi

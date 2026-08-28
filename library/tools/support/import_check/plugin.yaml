@@ -1,0 +1,15 @@
+name: import_check
+version: "1.0"
+description: >-
+  Validate a filled-in RGS+ Excel import against the template's own uitleg sheet
+  and report what would silently fail, and why it matters. The RGS+ importer
+  skips rows, defaults types and ignores fields WITHOUT raising an error, so
+  "er gebeurt niets" is the normal symptom of a broken import; this is how the
+  cause is found. Rules are derived from the template, not hand-written.
+requires_env: []
+# Optional: RGSPLUS_UPLOAD_DIR — where customer-supplied workbooks are written.
+# Defaults to ~/.hermes/uploads. Files outside it (and the bundled templates)
+# are refused: the path arrives via a model that has just read customer text.
+#
+# Requires the `openpyxl` package in the agent image. The tools return a clear
+# error rather than raising if it is missing.

@@ -16,6 +16,11 @@ node_modules/
 # verbatim customer questions — treat as customer data, keep out of git.
 .jira-dryrun/
 
+# Import workbooks a customer sent in, mounted into the agent for
+# import_check to read. Same reasoning as .jira-dryrun: customer data, and in
+# this case their actual object and address records. Never commit these.
+.uploads/
+
 # Answers from scripts/eval-questions.py. The question files under evals/ are
 # committed; what the agent replied is run output, and grows every run.
 evals/runs/
