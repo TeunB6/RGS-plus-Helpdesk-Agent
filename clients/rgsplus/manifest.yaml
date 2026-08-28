@@ -1,0 +1,27 @@
+# RGS+ — the helpdesk chatbot deployment.
+#
+# Shape follows bundles/rgsplus.yaml. Kept explicit rather than referencing
+# the bundle so this file alone tells you what the running image contains.
+
+skills:
+  - customer-service
+  - confluence-knowledge-lookup
+  - jira-ticket-create
+
+tools:
+  - atlassian
+
+# No specialists. The main agent (SOUL.md) runs the whole flow itself:
+# search the Confluence knowledge base, answer with a citation, or draft a
+# Jira ticket.
+profiles: []
+
+mcp: []
+
+secrets:
+  - ATLASSIAN_EMAIL
+  - JIRA_API_KEY
+  - ATLASSIAN_SITE_URL
+  - ATLASSIAN_CLOUD_ID
+  - JIRA_PROJECT_KEY
+  - CONFLUENCE_SPACE_KEYS

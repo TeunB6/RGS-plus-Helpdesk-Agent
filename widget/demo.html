@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RGS+ chatwidget — demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 46rem; margin: 4rem auto; padding: 0 1.5rem;
+           line-height: 1.6; color: #1f2937; }
+    h1 { color: #0f2b46; }
+    code, pre { background: #f3f4f6; border-radius: 4px; }
+    code { padding: .1rem .35rem; font-size: .9em; }
+    pre { padding: 1rem; overflow-x: auto; }
+    button { font: inherit; padding: .55rem 1rem; border: 0; border-radius: 6px;
+             background: #2f80ed; color: #fff; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>RGS+ chatwidget</h1>
+
+  <p>
+    This page stands in for a page of the RGS+ application. The launcher is
+    bottom-right; the panel iframes the agent UI.
+  </p>
+
+  <p>Serve it next to a running agent:</p>
+  <pre><code>docker compose up -d
+python3 -m http.server 8000 --directory widget
+# http://localhost:8000/demo.html</code></pre>
+
+  <p>
+    If the panel opens blank, the agent is refusing to be framed. Set
+    <code>EMBED_FRAME_ANCESTORS</code> in <code>.env</code> to include this
+    page's origin and restart <code>rgsplus-agent</code>.
+  </p>
+
+  <p>Opening it from the app's own button, via the exposed API:</p>
+  <p><button onclick="window.RGSPlusChat.open()">Hulp nodig?</button></p>
+
+  <script
+    src="rgsplus-chat.js"
+    data-agent-url="http://localhost:8080"
+    data-title="RGS+ Helpdesk"
+    data-accent="#2f80ed"
+    defer></script>
+</body>
+</html>

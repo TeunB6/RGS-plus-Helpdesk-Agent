@@ -1,0 +1,105 @@
+# RGS+ helpdesk agent.
+#
+#   docker compose up -d --build
+#
+# Two services:
+#   rgsplus-agent   the Hermes agent (chat UI on :8080, iframed by the widget)
+#   rgsplus-bridge  the callable module (REST on :8081, what the RGS+ app calls)
+#
+# The agent image is built from the uppr_hermes checkout — that repo owns the
+# base (Hermes + webui + nginx + seeding); this repo owns what makes RGS+
+# different (library/, clients/rgsplus/).
+#
+# Those two halves have to be one build context, because the Dockerfile COPYs
+# clients/ and library/ from its own context and seeds them at build time. So
+# run this FIRST, every time, before `docker compose up --build`:
+#
+#     scripts/stage-build-context.sh
+#
+# It copies $HERMES_CONTEXT into .build/agent-context and overlays this repo's
+# library/ and clients/ on top. The context below is that staged directory.
+#
+# Pinned project name so volume names stay stable if the checkout is moved.
+name: rgsplus
+
+services:
+  rgsplus-agent:
+    build:
+      context: .build/agent-context
+      args:
+        UPPR_CLIENT: rgsplus
+    image: rgsplus-agent
+    container_name: rgsplus-agent
+    restart: unless-stopped
+    ports:
+      # Host 8080 -> nginx in the container. Put a TLS terminator in front of
+      # this in production; never expose it directly.
+      - "${AGENT_PORT:-8080}:80"
+    volumes:
+      - hermes-data:/root/.hermes
+      # Jira ticket DRAFTS land here. jira_create_ticket never POSTs to Jira;
+      # it writes the payload a human reviews and submits. Bind-mounted out of
+      # the container so the drafts are readable without docker exec, and
+      # survive `docker compose down -v`.
+      - ./.jira-dryrun:/root/.hermes/jira-dryrun
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      TZ: "${TZ:-Europe/Amsterdam}"
+
+      LLM_PROVIDER: "${LLM_PROVIDER:-openrouter}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY:-}"
+      OPENROUTER_MODEL: "${OPENROUTER_MODEL:-anthropic/claude-sonnet-4-5}"
+      ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY:-}"
+      ANTHROPIC_MODEL: "${ANTHROPIC_MODEL:-claude-sonnet-4-5}"
+
+      # ── The day-of Atlassian values ──
+      # Atlassian Cloud REST uses HTTP Basic auth: username = the account
+      # e-mail, password = the API token. Both halves are required; a valid
+      # token with the wrong e-mail is a 401.
+      ATLASSIAN_EMAIL: "${ATLASSIAN_EMAIL:-}"
+      JIRA_API_KEY: "${JIRA_API_KEY:-}"
+      # Base URL, two modes. Classic/unscoped token -> ATLASSIAN_SITE_URL.
+      # Scoped token -> ATLASSIAN_CLOUD_ID (which wins if both are set).
+      ATLASSIAN_SITE_URL: "${ATLASSIAN_SITE_URL:-}"
+      ATLASSIAN_CLOUD_ID: "${ATLASSIAN_CLOUD_ID:-}"
+      # Project the ticket drafts are addressed to.
+      JIRA_PROJECT_KEY: "${JIRA_PROJECT_KEY:-}"
+      # Optional: comma-separated Confluence space keys, so knowledge-base
+      # search doesn't drag in internal or archived spaces.
+      CONFLUENCE_SPACE_KEYS: "${CONFLUENCE_SPACE_KEYS:-}"
+
+      # Which host origins may iframe the agent UI. Empty = framing blocked.
+      EMBED_FRAME_ANCESTORS: "${EMBED_FRAME_ANCESTORS:-}"
+
+      # start.sh copies each listed var into ~/.hermes/.env so plugin handlers
+      # can read them. Anything the plugins need MUST be listed here.
+      HERMES_PASSTHROUGH_VARS: "ATLASSIAN_EMAIL,JIRA_API_KEY,ATLASSIAN_SITE_URL,ATLASSIAN_CLOUD_ID,JIRA_PROJECT_KEY,CONFLUENCE_SPACE_KEYS"
+
+  rgsplus-bridge:
+    build:
+      context: ./bridge
+    image: rgsplus-bridge
+    container_name: rgsplus-bridge
+    restart: unless-stopped
+    depends_on:
+      - rgsplus-agent
+    ports:
+      - "${BRIDGE_PORT:-8081}:8081"
+    environment:
+      TZ: "${TZ:-Europe/Amsterdam}"
+      # Inbound: the token the RGS+ application sends. Generate with
+      # `openssl rand -hex 32`. Unset = the bridge refuses to start.
+      BRIDGE_API_KEY: "${BRIDGE_API_KEY:-}"
+      # Outbound: where the Hermes agent lives (container network, not host).
+      HERMES_BASE_URL: "http://rgsplus-agent:80"
+      HERMES_SEND_PATH: "${HERMES_SEND_PATH:-/api/session/{session_id}/message}"
+      HERMES_TIMEOUT: "${HERMES_TIMEOUT:-120}"
+      # Other agent modules this one may call, name=url,name=url.
+      # Per-peer token: AGENT_PEER_KEY_<NAME_UPPERCASED_WITH_UNDERSCORES>.
+      AGENT_PEERS: "${AGENT_PEERS:-}"
+      CORS_ALLOW_ORIGINS: "${CORS_ALLOW_ORIGINS:-}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+
+volumes:
+  hermes-data:

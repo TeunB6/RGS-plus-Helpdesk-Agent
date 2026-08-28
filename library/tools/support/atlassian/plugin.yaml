@@ -1,0 +1,6 @@
+name: atlassian
+version: "1.0"
+description: Confluence knowledge-base lookup (read-only) + Jira issue search and DRY-RUN ticket drafting for customer service. Atlassian Cloud REST API v3 / Confluence v2.
+requires_env:
+  - ATLASSIAN_EMAIL
+  - JIRA_API_KEY
