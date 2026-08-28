@@ -1,9 +1,9 @@
 # RGS+ — helpdesk chatbot on Confluence + Jira
 
 A chatbot that lives **inside the RGS+ application**, answers questions from
-the RGS+ **Confluence knowledge base**, and — when the knowledge base doesn't
-cover something — **drafts a Jira ticket** on the customer's helpdesk project
-for a human to submit.
+the RGS+ **Confluence knowledge base** and the **public RGS+ FAQ**, and — when
+neither covers something — **drafts a Jira ticket** on the customer's helpdesk
+project for a human to submit.
 
 No mail access is needed anywhere: RGS+ customers already mail the helpdesk
 address and Jira turns that into a ticket automatically. The chatbot is the
@@ -20,8 +20,25 @@ rgsplus-bridge          ← the callable agent module (this repo, bridge/)
    ▼
 rgsplus-agent           ← Hermes agent in Docker (uppr_hermes image + this repo's library/)
    ├── confluence_*  → the RGS+ knowledge base   (read-only)
+   ├── faq_*         → rgsplus.com/faq            (read-only, public)
    └── jira_*        → customer's Jira Cloud site (search + read; create = DRY RUN)
 ```
+
+## Two knowledge sources
+
+They divide cleanly, and the `rgsplus-faq-lookup` skill carries the routing:
+
+| Question | Source |
+| --- | --- |
+| "How do I…", "why is this broken", a menu path, an error, an import format | **Confluence** — the product knowledge base |
+| "What does it cost", "who owns our data", "does it integrate with AFAS", "how fast can we start" | **FAQ** — the ~36 questions published at [rgsplus.com/faq](https://rgsplus.com/faq/) |
+
+Roughly: *"can it?"* is the FAQ, *"how do I?"* is Confluence. When both
+answer, Confluence wins on detail and the answer cites both.
+
+The FAQ needs no credentials — it's a public page. The plugin fetches and
+parses it, caches it for 24h, and falls back to a snapshot committed in this
+repo, so the bot still answers when rgsplus.com is unreachable.
 
 ## Read-only by design
 
@@ -51,22 +68,28 @@ behind an explicit `ATLASSIAN_ALLOW_WRITES=true` gate, then revisiting the
 | Path | What it is |
 | --- | --- |
 | [bridge/](bridge/) | The callable agent module. FastAPI, own container, bearer-auth REST API, peer registry so it can reach other agent modules. |
-| [library/skills/support/](library/skills/support/) | The three skills that drive the bot: `customer-service` (the flow), `confluence-knowledge-lookup` (search + cite), `jira-ticket-create` (escalation + dry-run rules). |
+| [library/skills/support/](library/skills/support/) | The four skills that drive the bot: `customer-service` (the flow), `confluence-knowledge-lookup` (search + cite), `rgsplus-faq-lookup` (the FAQ, source routing, what may be quoted from published prices), `jira-ticket-create` (escalation + dry-run rules). |
 | [library/tools/support/atlassian/](library/tools/support/atlassian/) | Confluence read, Jira search/read, dry-run ticket drafting. Atlassian Cloud REST v3 / Confluence v2, Basic auth. |
+| [library/tools/support/rgsplus-faq/](library/tools/support/rgsplus-faq/) | The public FAQ as a second source: fetches and parses rgsplus.com/faq, caches 24h, falls back to `faq-snapshot.json`. No credentials. |
 | [library/tools/support/import_check/](library/tools/support/import_check/) | Validates a filled-in RGS+ import workbook against the template's own `uitleg` sheet and reports the *consequence* of each fault. Local, read-only, no network. Needs `openpyxl`. |
 | [bundles/rgsplus.yaml](bundles/rgsplus.yaml) | The helpdesk vertical: which library items an RGS+ deployment gets. |
 | [clients/rgsplus/](clients/rgsplus/) | This client's manifest, branding and `SOUL.md`. No specialist profiles — the main agent runs the whole flow. |
 | [widget/](widget/) | Drop-in `<script>` chat launcher for the RGS+ application. |
-| [scripts/](scripts/) | `stage-build-context.sh` (assemble the Docker build context — **run before every build**), `preflight-atlassian.py` (verify the day-of credentials), `eval-questions.py` (ask the running bot a list of questions), `probe-hermes-api.sh`. |
+| [scripts/](scripts/) | `stage-build-context.sh` (assemble the Docker build context — **run before every build**), `preflight-atlassian.py` (verify the day-of credentials), `fetch-faq.py` (refresh the FAQ snapshot), `test-faq-plugin.py` (FAQ parser + search self-check), `eval-questions.py` (ask the running bot a list of questions), `probe-hermes-api.sh`. |
 | [evals/](evals/) | Question files to run the bot against — real helpdesk mails plus the cases where it should decline or escalate. |
 | [docs/DAY-OF-CHECKLIST.md](docs/DAY-OF-CHECKLIST.md) | What to collect on the day, and what to do with it. |
 
 Architecture rationale — why library/bundle/client and not one monolith — is in
 [ARCHITECTURE.md](ARCHITECTURE.md).
 
-There is no `knowledge/` directory and no local corpus. The knowledge base
-lives in Confluence — that is where RGS+ already maintains it, and a copy here
-would be stale the day after it was made.
+There is no `knowledge/` directory and no local corpus of the product
+documentation. The knowledge base lives in Confluence — that is where RGS+
+already maintains it, and a copy here would be stale the day after it was
+made. The one committed copy of anything,
+[faq-snapshot.json](library/tools/support/rgsplus-faq/faq-snapshot.json), is a
+cache rather than a fork: the FAQ has no API to query, so the page must be
+fetched and parsed either way, and the plugin refreshes it on its own. See
+[ARCHITECTURE.md](ARCHITECTURE.md#why-the-faq-is-cached-when-the-knowledge-base-is-not).
 
 ## What we need from the customer on the day
 
@@ -139,10 +162,11 @@ curl -s localhost:8081/v1/chat \
 python3 scripts/eval-questions.py evals/helpdesk-nl.txt
 ```
 
-Every question in the file is sent **without a `session_id`**, so the bridge
-opens a fresh Hermes session for each one. No question can see another's
-answer, and each is a first turn — the same cold start a user gets when they
-open the widget and paste a mail. The run aborts with a non-zero exit if two
+Every question is sent **without a `session_id`** and with `ephemeral: true`,
+so the bridge opens a fresh Hermes session, asks it, and deletes it again. No
+question can see another's answer, each is a first turn — the same cold start
+a user gets when they open the widget and paste a mail — and a 28-question run
+leaves nothing behind in the agent's sidebar. The run exits non-zero if two
 answers ever come back on the same session id, because then they are not
 independent and the results mean nothing.
 
@@ -219,12 +243,15 @@ in short:
 
 1. **Understand the question** — one round of clarifying questions if what
    happened, what was expected, or the exact error is missing.
-2. **Search Confluence** (`confluence_search`, then `confluence_get_page` on
-   the pages that look right — excerpts mislead). Search **both languages**
-   before concluding the KB has nothing; that is the most common cause of a
-   false "not documented".
-3. **Answer if the KB covers it**, citing page title and URL. Partial answers
-   count: answer the covered part, name the gap, escalate just that.
+2. **Pick the source.** Commercial/general → `faq_search`. Product/how-to →
+   `confluence_search`, then `confluence_get_page` on the pages that look
+   right (excerpts mislead). Search **both languages** in Confluence before
+   concluding the KB has nothing; that is the most common cause of a false
+   "not documented". Ambiguous questions get both — they're small and cheap.
+   An import that *misbehaved* is neither: send it to `import_validate_file`,
+   because no page documents what one particular workbook got wrong.
+3. **Answer if a source covers it**, citing it. Partial answers count: answer
+   the covered part, name the gap, escalate just that.
 4. **Check for an existing ticket** (`jira_search_issues`) before drafting —
    an open ticket with a status beats a duplicate.
 5. **Draft** (`jira_create_ticket`, dry run) with a summary written for an
@@ -232,11 +259,19 @@ in short:
    triaging, and what was searched. Tell the customer it's with a colleague —
    **no ticket key, no SLA**.
 
-The hard rule underneath all of it: answer from the knowledge base, not from
-general knowledge. A `401`/`403`/`404` from Confluence means the KB is
-*unreachable*, not that it lacks an answer — the bot says so instead of
-falling back on itself or filing a ticket about a documentation gap that
-doesn't exist.
+The hard rule underneath all of it: answer from a source, not from general
+knowledge. A `401`/`403`/`404` from Confluence means the KB is *unreachable*,
+not that it lacks an answer — the bot says so instead of falling back on
+itself or filing a ticket about a documentation gap that doesn't exist. (A
+`warning` from `faq_search` is the benign case: the live page couldn't be
+re-fetched, so a cached copy was served.)
+
+The FAQ publishes numbers the bot is otherwise forbidden to state — a licence
+range of €1.400–€40.000/yr and a one-working-day target response. The rule is
+**quote, don't commit**: repeating those with the source link is fine, turning
+them into a quote for a specific customer or a promise about a specific ticket
+is not. Encoded in
+[rgsplus-faq-lookup](library/skills/support/rgsplus-faq-lookup/SKILL.md).
 
 ## Status
 
@@ -247,7 +282,13 @@ Scaffolding is real and runnable; the deployment specifics are not yet filled in
 - [ ] `CONFLUENCE_SPACE_KEYS` unset. Run `confluence_list_spaces` (or the
       preflight) once against the real site and pin the knowledge-base spaces.
 - [ ] `clients/rgsplus/brand.env` uses provisional colours — replace with RGS+'s.
-- [ ] The bridge's Hermes chat endpoint is set from `HERMES_SEND_PATH`; confirm the
-      real route with `scripts/probe-hermes-api.sh` against a running container.
+- [ ] The bridge's Hermes routes are verified against the current agent image
+      (`/api/chat`, `/api/session/new`, `/api/session/delete`). They are not a
+      published API — re-run `scripts/probe-hermes-api.sh` after bumping it.
 - [ ] Nobody picks drafts out of `.jira-dryrun/` yet. Decide who does, or decide
       to enable real writes.
+- [ ] The FAQ's published price range and response time are repeated to
+      customers by design. Confirm with RGS+ that they're happy with that, and
+      that both are current — the bot is only as right as their website.
+- [ ] `scripts/fetch-faq.py` is run by hand. If the FAQ changes often, put it
+      on a schedule so the committed fallback doesn't drift.

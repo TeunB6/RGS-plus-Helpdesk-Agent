@@ -116,18 +116,25 @@ async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     hermes: HermesClient = request.app.state.hermes
 
     session_id = (payload.session_id or "").strip()
-    if not session_id:
-        session_id = await hermes.new_session()
-
-    message = _with_context(payload)
+    # Only a session this request opened may be deleted afterwards. A caller
+    # that passed its own id owns it — `ephemeral` does not license the bridge
+    # to throw away someone else's conversation.
+    opened_here = not session_id
 
     try:
-        reply = await hermes.send(session_id, message)
+        if opened_here:
+            session_id = await hermes.new_session()
+        reply = await hermes.send(session_id, _with_context(payload))
     except HermesError as e:
         # 502: the bridge is fine, the thing behind it is not. The detail is
         # for RGS+'s logs; the RGS+ app should show its users something kinder.
-        log.error("chat failed session=%s: %s", session_id, e)
+        log.error("chat failed session=%s: %s", session_id or "(none)", e)
         raise HTTPException(status_code=502, detail=f"Agent unavailable: {e}") from e
+    finally:
+        # In `finally` so a failed or timed-out turn cleans up too — that is
+        # exactly when sessions would otherwise accumulate.
+        if opened_here and payload.ephemeral and session_id:
+            await hermes.delete_session(session_id)
 
     return ChatResponse(session_id=session_id, reply=reply)
 

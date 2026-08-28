@@ -45,6 +45,7 @@ class Settings:
     hermes_base_url: str
     hermes_send_path: str
     hermes_session_path: str
+    hermes_delete_path: str
     hermes_timeout: float
     peers: dict[str, Peer] = field(default_factory=dict)
     cors_allow_origins: list[str] = field(default_factory=list)
@@ -69,18 +70,19 @@ class Settings:
         if not base.startswith(("http://", "https://")):
             raise ConfigError(f"HERMES_BASE_URL must start with http:// or https:// — got {base!r}.")
 
-        send_path = (os.environ.get("HERMES_SEND_PATH") or "/api/session/{session_id}/message").strip()
-        if "{session_id}" not in send_path:
-            raise ConfigError(
-                "HERMES_SEND_PATH must contain the {session_id} placeholder — "
-                f"got {send_path!r}."
-            )
+        # /api/chat takes the session id in the body, so a {session_id}
+        # placeholder is optional here — it is substituted when present, for
+        # hermes-webui versions that route per session instead.
+        send_path = (os.environ.get("HERMES_SEND_PATH") or "/api/chat").strip()
+        if not send_path.startswith("/"):
+            raise ConfigError(f"HERMES_SEND_PATH must start with '/' — got {send_path!r}.")
 
         return cls(
             api_key=api_key,
             hermes_base_url=base,
             hermes_send_path=send_path,
             hermes_session_path=(os.environ.get("HERMES_SESSION_PATH") or "/api/session/new").strip(),
+            hermes_delete_path=(os.environ.get("HERMES_DELETE_PATH") or "/api/session/delete").strip(),
             hermes_timeout=float(os.environ.get("HERMES_TIMEOUT") or 120),
             peers=_parse_peers(os.environ.get("AGENT_PEERS")),
             cors_allow_origins=_split(os.environ.get("CORS_ALLOW_ORIGINS")),
