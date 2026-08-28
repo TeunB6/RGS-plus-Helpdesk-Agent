@@ -140,7 +140,7 @@ uselessly. Check what's actually in those spaces before promising anything.
 ### 3. Build and start it
 
 ```bash
-mkdir -p .jira-dryrun             # bind mount; root-owned if Docker creates it
+mkdir -p .jira-dryrun .uploads    # bind mounts; root-owned if Docker creates them
 docker compose up -d --build      # --build every time: seeding runs at build time
 open http://localhost:8080
 ```

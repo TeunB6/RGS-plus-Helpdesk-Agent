@@ -139,8 +139,25 @@ RUN HERMES_WEBUI_PYTHON=/usr/local/lib/hermes-agent/venv/bin/python3 \
 # from it (`hermes gateway run` and `/hermes-webui/server.py` are both
 # /usr/local/lib/hermes-agent/venv/bin/python), and plugin handlers load
 # in-process, so this is the interpreter that has to import it.
-RUN /usr/local/lib/hermes-agent/venv/bin/python3 -m pip install --no-cache-dir openpyxl \
-    && /usr/local/lib/hermes-agent/venv/bin/python3 -c "import openpyxl; print('openpyxl ' + openpyxl.__version__)"
+#
+# Installed with uv, NOT pip. That venv is uv-managed and has no pip in it at
+# all — `python3 -m pip install` there fails with "No module named pip", and so
+# does the system python3 (the image installs python3-venv, not python3-pip).
+# The only usable installer is the uv that hermes-agent's install.sh drops at
+# /root/.hermes/bin/uv. It is baked into this layer; at RUNTIME the hermes-data
+# volume mounts over /root/.hermes and shadows it, which is fine — this runs at
+# build time.
+#
+# Note the venv is Python 3.11 while /hermes-webui/.venv is 3.12, so the
+# webui's pip is not a substitute: it would install into the wrong site-packages.
+#
+# The import check on the second line is the point of the layer — a silent
+# failure here is exactly the bug this replaces, so let the build fail loudly.
+RUN /root/.hermes/bin/uv pip install \
+        --python /usr/local/lib/hermes-agent/venv/bin/python3 \
+        openpyxl \
+    && /usr/local/lib/hermes-agent/venv/bin/python3 \
+        -c "import openpyxl; print('openpyxl ' + openpyxl.__version__)"
 
 # Which clients/<name>/ directory brands and seeds this image. Defaulted to
 # rgsplus (upstream defaults to "uppr", which does not exist here) so a bare

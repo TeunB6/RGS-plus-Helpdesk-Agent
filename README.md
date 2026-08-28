@@ -152,7 +152,7 @@ python3 scripts/preflight-atlassian.py   # don't skip this
 # Create the bind-mount target for the Jira ticket drafts BEFORE the first
 # `up`. Docker creates a missing bind source itself, as root — and then the
 # drafts a human is supposed to read need sudo to open.
-mkdir -p .jira-dryrun
+mkdir -p .jira-dryrun .uploads
 
 docker compose up -d --build
 

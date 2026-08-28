@@ -11,6 +11,11 @@
 # Customer data. Jira ticket drafts contain verbatim customer questions.
 .jira-dryrun/
 
+# Customer data. Import workbooks hold their real object and address records.
+# import_check reads these from a bind mount at runtime; they have no business
+# in a build context, let alone baked into an image layer.
+.uploads/
+
 # Large and useless in a context.
 .git/
 .github/

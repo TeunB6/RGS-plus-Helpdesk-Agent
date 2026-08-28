@@ -300,7 +300,7 @@ def main() -> int:
         print(f"ATLASSIAN_SITE_URL={site}")
     print(f"JIRA_PROJECT_KEY={project}")
     print(f"CONFLUENCE_SPACE_KEYS={','.join(spaces)}\n")
-    print(f"{DIM}Next: mkdir -p .jira-dryrun && docker compose up -d --build{RESET}\n")
+    print(f"{DIM}Next: mkdir -p .jira-dryrun .uploads && docker compose up -d --build{RESET}\n")
     return 0
 
 
