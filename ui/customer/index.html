@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RGS+ Helpdesk</title>
+
+<!-- No external requests. RGS+ self-host their fonts and make no call to
+     fonts.googleapis.com anywhere on their own site; a customer running a
+     58-question security review will check, and a CDN font would contradict
+     RGS+'s published EU-hosting commitment. -->
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="app">
+
+  <header class="hdr">
+    <img id="logo" class="hdr__logo" src="../assets/rgsplus-logo.svg" alt="RGS+">
+    <span class="hdr__title">Helpdesk</span>
+    <span class="hdr__sub">ma&ndash;vr 08:30&ndash;17:00</span>
+  </header>
+
+  <main id="thread" class="thread" aria-live="polite" aria-label="Gesprek">
+    <div class="intro">
+      <h2>Waar loop je tegenaan?</h2>
+      <p id="intro-where" hidden>Je bent op <span id="where" class="where"></span>.</p>
+      <p>Stel je vraag, of plak de mail die je wilde sturen.</p>
+    </div>
+  </main>
+
+  <form id="composer" class="composer" autocomplete="off">
+    <div class="composer__row">
+      <label class="sr-only" for="input">Je vraag</label>
+      <textarea id="input" class="composer__input" rows="1"
+                placeholder="Bijvoorbeeld: ik krijg mijn import niet voor elkaar&hellip;"></textarea>
+      <button id="send" type="submit" class="btn btn--primary">Versturen</button>
+    </div>
+    <div class="composer__meta">
+      <span class="composer__hint">Enter voor een nieuwe regel &middot; Ctrl+Enter om te versturen</span>
+      <span id="count" class="composer__count"></span>
+    </div>
+  </form>
+
+</div>
+
+<script>
+  // Populated by the RGS+ application when it embeds this page.
+  // NOTE: apiUrl points at an RGS+ backend route, never at the bridge itself —
+  // the bearer token authenticates the application, not the user, so `role`
+  // must be attached server-side. See app.js header.
+  window.SAM_CONFIG = {
+    apiUrl: "/api/sam/chat",
+    context: { screen: "", version: "" },
+    user: { name: "", email: "", organisation: "", role: "", licence: "" }
+  };
+</script>
+<script src="app.js"></script>
+</body>
+</html>

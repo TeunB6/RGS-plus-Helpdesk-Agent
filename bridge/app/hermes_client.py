@@ -33,10 +33,12 @@ same reason. Re-check the routes against a running container with
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
+from . import agent_meta
 from .config import Settings
 
 log = logging.getLogger("bridge.hermes")
@@ -44,6 +46,28 @@ log = logging.getLogger("bridge.hermes")
 
 class HermesError(RuntimeError):
     """The agent could not answer. Message is safe to show an operator, not a user."""
+
+
+@dataclass
+class AgentReply:
+    """The agent's answer, with its trailer parsed off. See agent_meta.py."""
+
+    text: str
+    state: str = agent_meta.DEFAULT_STATE
+    citations: list[dict[str, Any]] = field(default_factory=list)
+    draft: dict[str, Any] | None = None
+    confidence: float | None = None
+
+    @classmethod
+    def parse(cls, raw: str) -> "AgentReply":
+        text, meta = agent_meta.split(raw)
+        return cls(
+            text=text,
+            state=meta["state"],
+            citations=meta["citations"],
+            draft=meta["draft"],
+            confidence=meta["confidence"],
+        )
 
 
 class HermesClient:
@@ -84,7 +108,7 @@ class HermesClient:
             )
         return session_id
 
-    async def send(self, session_id: str, message: str) -> str:
+    async def send(self, session_id: str, message: str) -> AgentReply:
         # The default route (/api/chat) carries the session in the body; older
         # per-session routes carry it in the path. Support both — replace() is
         # a no-op when there is no placeholder.
@@ -125,7 +149,7 @@ class HermesClient:
         reply = _extract_reply(payload, response.text)
         if not reply:
             raise HermesError("the agent returned an empty reply")
-        return reply
+        return AgentReply.parse(reply)
 
     async def delete_session(self, session_id: str) -> bool:
         """Discard a session on the agent. Returns whether it went.
