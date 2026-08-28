@@ -24,6 +24,9 @@ node_modules/
 # Import workbooks a customer sent in, mounted into the agent for
 # import_check to read. Same reasoning as .jira-dryrun: customer data, and in
 # this case their actual object and address records. Never commit these.
+# Also `mkdir -p .uploads` before the first `docker compose up`, for the same
+# reason: Docker creates a missing bind source as root, and then you cannot
+# drop a workbook into it without sudo.
 .uploads/
 
 # Answers from scripts/eval-questions.py. The question files under evals/ are
