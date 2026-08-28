@@ -193,10 +193,26 @@ elif [ ! -f "${CONFIG_FILE}" ]; then
 fi
 
 # Per-client SOUL.md baked at /etc/uppr-soul.md (by apply-branding.sh).
-# Seeded into the volume only if the user/Hermes hasn't already written
-# one -- never overwrite a SOUL the customer edited via the webui.
-if [ -f /etc/uppr-soul.md ] && [ ! -f "${HERMES_DIR}/SOUL.md" ]; then
+# Seeded once; after that a SOUL the customer edited via the webui is never
+# overwritten.
+#
+# The guard is a MARKER, not "does SOUL.md exist" -- that test never passed.
+# The image build runs hermes-agent, which writes a stock
+# /root/.hermes/SOUL.md ("You are Hermes Agent ... by Nous Research") into the
+# image. Docker pre-populates an empty named volume from the image directory it
+# is mounted over, so ~/.hermes/SOUL.md is already present before this script
+# runs -- on a brand-new volume, every time. The client SOUL was therefore
+# never copied, and the agent ran with the stock Hermes identity: no RGS+
+# scope, no tone rules, no escalation policy. Recreating the volume did not
+# help, because the stock file comes back with it.
+#
+# Symptom if this regresses: the agent answers reasonably (skills DO seed
+# correctly) but ignores everything in clients/<name>/SOUL.md.
+SOUL_MARKER="${HERMES_DIR}/.uppr-soul-seeded"
+if [ -f /etc/uppr-soul.md ] && [ ! -f "${SOUL_MARKER}" ]; then
     cp /etc/uppr-soul.md "${HERMES_DIR}/SOUL.md"
+    : > "${SOUL_MARKER}"
+    echo "[uppr] seeded client SOUL.md ($(wc -c < /etc/uppr-soul.md) bytes)"
 fi
 
 # Seed library items (skills, MCP servers, profiles) baked into the
