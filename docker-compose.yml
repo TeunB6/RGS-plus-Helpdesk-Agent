@@ -6,18 +6,16 @@
 #   rgsplus-agent   the Hermes agent (chat UI on :8080, iframed by the widget)
 #   rgsplus-bridge  the callable module (REST on :8081, what the RGS+ app calls)
 #
-# The agent image is built from the uppr_hermes checkout — that repo owns the
-# base (Hermes + webui + nginx + seeding); this repo owns what makes RGS+
-# different (library/, clients/rgsplus/).
+# Both halves of the agent image live in this repo: the base (Hermes + webui +
+# nginx + seeding) is vendored under agent/, and what makes this deployment
+# RGS+ is library/ and clients/rgsplus/. agent/README.md records the upstream
+# commit that base was taken from and how to re-sync it.
 #
-# Those two halves have to be one build context, because the Dockerfile COPYs
-# clients/ and library/ from its own context and seeds them at build time. So
-# run this FIRST, every time, before `docker compose up --build`:
-#
-#     scripts/stage-build-context.sh
-#
-# It copies $HERMES_CONTEXT into .build/agent-context and overlays this repo's
-# library/ and clients/ on top. The context below is that staged directory.
+# The agent build context is therefore the repository ROOT, with the
+# Dockerfile at agent/Dockerfile — the Dockerfile COPYs clients/ and library/
+# from its own context, so they have to be in it. .dockerignore keeps the
+# context small. There is no staging step: the line at the top is the whole
+# build.
 #
 # Pinned project name so volume names stay stable if the checkout is moved.
 name: rgsplus
@@ -25,7 +23,8 @@ name: rgsplus
 services:
   rgsplus-agent:
     build:
-      context: .build/agent-context
+      context: .
+      dockerfile: agent/Dockerfile
       args:
         UPPR_CLIENT: rgsplus
     image: rgsplus-agent

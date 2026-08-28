@@ -50,8 +50,9 @@ that doesn't change when the UI upstream does. The bridge is that seam:
 
 ## Layering the agent's capabilities
 
-Same three-level model as `uppr_hermes` — the base image is shared, and this
-repo only carries what makes RGS+ different.
+Same three-level model as `uppr_hermes`, whose base image is vendored under
+[agent/](agent/) — that directory carries nothing RGS+-specific, and everything
+below is what makes this deployment RGS+.
 
 ```
 library/          catalog   -- RGS+ building blocks (atlassian plugin, support skills)
@@ -62,26 +63,27 @@ bundles/rgsplus   template  -- the helpdesk vertical: which items a deployment g
    ▼  (provision-client.py: bundle + branding)
 clients/rgsplus/  instance  -- manifest + brand.env + SOUL.md
    │
-   ▼  (scripts/stage-build-context.sh, then
-   │   docker build --build-arg UPPR_CLIENT=rgsplus)
+   ▼  (docker build -f agent/Dockerfile --build-arg UPPR_CLIENT=rgsplus .)
 ~/.hermes/        runtime   -- the live container's volume
 ```
 
-### Why the build context is staged
+### Why the build context is the repository root
 
-The Dockerfile lives in `uppr_hermes` and does `COPY clients/ …` and
-`COPY library/ …` **from its own build context**, because the manifest-to-
-`~/.hermes` seeding runs at build time (`scripts/apply-library.sh`). Docker has
-no mechanism for reading those two directories out of a second repository, and
-there is no runtime overlay that would pick them up from a bind mount.
+`agent/Dockerfile` does `COPY clients/ …` and `COPY library/ …` **from its own
+build context**, because the manifest-to-`~/.hermes` seeding runs at build time
+(`agent/scripts/apply-library.sh`). There is no runtime overlay that would pick
+those two directories up from a bind mount instead.
 
-So `scripts/stage-build-context.sh` copies the Hermes checkout into
-`.build/agent-context` and overlays this repo's `library/` and `clients/` on
-top; compose builds from the result. It has to run before every build, and
-`.build/` is disposable — regenerate it, never edit it.
+So the base and the RGS+ half have to sit in one context. They do, because both
+are in this repo: the context is the root, and the Dockerfile is one directory
+down. `.dockerignore` keeps the context to what is actually COPYed, and keeps
+`.env` and `.jira-dryrun/` out of it.
 
-The alternative — vendoring the Dockerfile here — would fork the base and
-defeat the point of uppr_hermes owning it.
+This is a **fork of the base**, and that is the trade. Referencing a sibling
+`uppr_hermes` checkout kept the base single-owner, but meant a fresh clone of
+this repo could build nothing and named no commit to clone — the deployment was
+not reproducible from its own source. [agent/README.md](agent/README.md) records
+the upstream commit, the three local edits, and how to diff and re-sync.
 
 Seeding is **first-write only** in the base image: anything already in the
 volume is never overwritten, so edits made through the web UI survive
@@ -233,4 +235,4 @@ escalation, so they must be readable without `docker exec` and must survive
 | Another public page worth answering from? | Another plugin like `rgsplus-faq`, not a second source inside it — one plugin per source keeps the citation honest |
 | Another system to reach (e.g. RGS+'s own API)? | New **plugin** if it's a handful of endpoints; **mcp** fragment if a server already exists |
 | Another agent module should handle it? | Register it as a **peer** on the bridge |
-| Edited a skill/plugin and nothing changed? | Re-run `scripts/stage-build-context.sh`, rebuild, and delete the item from the `hermes-data` volume — seeding is first-write-only |
+| Edited a skill/plugin and nothing changed? | `docker compose up -d --build` (seeding is at build time, so a restart is not enough), then delete the item from the `hermes-data` volume — seeding is first-write-only |

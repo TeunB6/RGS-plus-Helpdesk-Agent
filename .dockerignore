@@ -1,0 +1,37 @@
+# The agent build context is the repository root (docker-compose.yml,
+# rgsplus-agent). Only clients/, library/ and agent/ are COPYed out of it, so
+# everything else is dead weight in the context — and two entries below are
+# worse than dead weight.
+
+# Secrets. .env holds the Atlassian token and the LLM key; it must never enter
+# a build context, where it could be baked into a layer.
+.env
+.env.local
+
+# Customer data. Jira ticket drafts contain verbatim customer questions.
+.jira-dryrun/
+
+# Large and useless in a context.
+.git/
+.github/
+.build/
+
+# Run output.
+evals/runs/
+*.log
+
+# Not part of the agent image. The bridge builds from ./bridge with its own
+# context; the widget is served by the RGS+ application, not by this image.
+bridge/
+widget/
+docs/
+README.md
+ARCHITECTURE.md
+
+# Python litter.
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+.DS_Store
