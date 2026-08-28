@@ -2,9 +2,18 @@
 # from the RGS+ Confluence knowledge base and drafts a Jira ticket when the
 # knowledge base cannot answer.
 #
-# One plugin carries the whole integration:
-#   atlassian -> Confluence (knowledge base, read-only) + Jira (search, read,
-#                DRY-RUN ticket drafting). Atlassian Cloud REST v3 / Confluence v2.
+# Two plugins:
+#   atlassian    -> Confluence (knowledge base, read-only) + Jira (search, read,
+#                   DRY-RUN ticket drafting). Atlassian Cloud REST v3 / Confluence v2.
+#   import_check -> validates a filled-in RGS+ Excel import against the
+#                   template's own uitleg sheet. Read-only, local, no network.
+#                   Here because the RGS+ importer FAILS SILENTLY by design --
+#                   rows are skipped, types default to 'utiliteit', fields are
+#                   left unchanged, and nothing is ever reported. "Er gebeurt
+#                   niets" is the normal symptom, so the cause cannot be found
+#                   by reading the manual. Deterministic checks belong in a
+#                   tool; the agent's job is to explain the result in Dutch.
+#                   Needs `openpyxl` in the agent image.
 #
 # Mail is deliberately absent. RGS+ customers already mail the helpdesk
 # address and Jira turns that into a ticket automatically; the chatbot is a
@@ -51,6 +60,7 @@ skills:
 
 tools:
   - atlassian
+  - import_check
 
 profiles: []
 

@@ -52,7 +52,8 @@ behind an explicit `ATLASSIAN_ALLOW_WRITES=true` gate, then revisiting the
 | --- | --- |
 | [bridge/](bridge/) | The callable agent module. FastAPI, own container, bearer-auth REST API, peer registry so it can reach other agent modules. |
 | [library/skills/support/](library/skills/support/) | The three skills that drive the bot: `customer-service` (the flow), `confluence-knowledge-lookup` (search + cite), `jira-ticket-create` (escalation + dry-run rules). |
-| [library/tools/support/atlassian/](library/tools/support/atlassian/) | The one plugin: Confluence read, Jira search/read, dry-run ticket drafting. Atlassian Cloud REST v3 / Confluence v2, Basic auth. |
+| [library/tools/support/atlassian/](library/tools/support/atlassian/) | Confluence read, Jira search/read, dry-run ticket drafting. Atlassian Cloud REST v3 / Confluence v2, Basic auth. |
+| [library/tools/support/import_check/](library/tools/support/import_check/) | Validates a filled-in RGS+ import workbook against the template's own `uitleg` sheet and reports the *consequence* of each fault. Local, read-only, no network. Needs `openpyxl`. |
 | [bundles/rgsplus.yaml](bundles/rgsplus.yaml) | The helpdesk vertical: which library items an RGS+ deployment gets. |
 | [clients/rgsplus/](clients/rgsplus/) | This client's manifest, branding and `SOUL.md`. No specialist profiles — the main agent runs the whole flow. |
 | [widget/](widget/) | Drop-in `<script>` chat launcher for the RGS+ application. |
@@ -176,6 +177,39 @@ Hermes image regenerates its frame-ancestors CSP from it at boot.
 
 For a fully custom UI (RGS+'s own chat components), skip the iframe and call
 `POST /v1/chat` on the bridge instead — see [bridge/README.md](bridge/README.md).
+
+## Import questions are answered by a tool, not by the model
+
+`"Ik ben zelf aan het puzzelen en ik krijg mijn import niet voor elkaar"` is one
+of the recurring ticket classes, and it is the hardest to answer by reading
+documentation — because the RGS+ importer **fails silently by design**. From
+`objects.xlsx`'s own uitleg sheet: a missing or non-numeric `vhe` means *"de
+regel wordt overgeslagen"*; a bad `type` means *"de invoer wordt 'utiliteit'"*;
+a misspelled name means *"het veld wordt niet gewijzigd"*. Nothing is raised.
+The user sees a row that vanished and has no route back to the cause.
+
+`import_check` finds those deterministically:
+
+```bash
+# the workbook the customer uploaded, in $RGSPLUS_UPLOAD_DIR
+import_validate_file(file_path="…/uploads/objecten-maart.xlsx")
+```
+
+The rules are **not hand-written** — every template ships an `uitleg` sheet with
+a literal field table, so the template is the spec and the tool reads it out.
+Point it at a new template and that one validates too. The customer's own
+workbook is normally its own spec, since they filled in the template they
+downloaded; the six bundled copies are only a fallback.
+
+Every finding reports the consequence, not just the error — *"RGS+ will skip
+this row without reporting it"* rather than *"row 47 is invalid"* — because the
+consequence is the part the user cannot work out.
+
+Two behaviours that look like bugs and are not: it **refuses to run** when it
+cannot parse a spec rather than reporting the file as clean (a validator with no
+rules finds no problems), and it only treats quoted values as a **closed** enum
+when the wording says so — `scenario`'s `laag` is free text with two special
+values, and reading it as an enum flagged every correct row.
 
 ## How the bot decides to escalate
 

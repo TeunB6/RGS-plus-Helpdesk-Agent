@@ -10,6 +10,7 @@ skills:
 
 tools:
   - atlassian
+  - import_check
 
 # No specialists. The main agent (SOUL.md) runs the whole flow itself:
 # search the Confluence knowledge base, answer with a citation, or draft a
