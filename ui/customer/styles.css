@@ -173,3 +173,22 @@ html, body {
   position:absolute; width:1px; height:1px; padding:0; margin:-1px;
   overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
 }
+
+/* ---------- markdown inside a bubble ---------- */
+/* The agent replies in markdown. Rendered as nodes, never innerHTML — see
+   renderMarkdown() in app.js. Spacing is tight: this is a chat reply, not a
+   document, and the default paragraph margins made every answer look padded. */
+.msg__bubble { white-space: normal; }
+.md-p { margin: 0 0 .5rem; }
+.md-p:last-child { margin-bottom: 0; }
+.md-list { margin: 0 0 .5rem; padding-left: 1.15rem; }
+.md-list:last-child { margin-bottom: 0; }
+.md-list li { margin: .15rem 0; }
+.md-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .875em;
+  background: var(--c-white-1); border: var(--stroke) solid var(--c-gray-1);
+  border-radius: var(--radius-s); padding: .05rem .3rem;
+}
+.msg--user .md-code { background: rgba(255,255,255,.18); border-color: transparent; color: inherit; }
+.md-link { color: var(--c-1a); }
+.msg--user .md-link { color: var(--c-white-2); }

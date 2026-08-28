@@ -970,7 +970,33 @@ def _handle_create_ticket(params, **kwargs):
 # Registration
 # ---------------------------------------------------------------------------
 
+# Live Confluence reads are OFF by default, because the whole knowledge base is
+# preloaded into the rgsplus-handleiding skill and searching for what you have
+# already been handed is what made answers take a minute.
+#
+# Measured 2026-08-28: Confluence itself is fast (a CQL search plus four page
+# reads is ~1.0s). The cost is the tool LOOP -- every call is another round trip
+# to the model, ~12s each. Questions that looked something up took 72-97s;
+# questions that did not took 11-15s.
+#
+# The skill already tells the agent to read rather than search. This makes it a
+# CAPABILITY BOUNDARY instead of an instruction, for the same reason ticket
+# creation is a dry run rather than a rule: an instruction the model can ignore
+# is not a guarantee, and one ignored instruction costs ~40 seconds per answer.
+#
+# Set CONFLUENCE_LIVE_TOOLS=true to restore them -- worth doing if the snapshot
+# is stale and you want the agent to check, or while debugging the connection.
+# The snapshot is refreshed deliberately with scripts/fetch-manual.py, whose git
+# diff is the record of what RGS+ changed.
+_CONFLUENCE_READ_TOOLS = {"confluence_search", "confluence_get_page", "confluence_list_spaces"}
+
+
+def _live_confluence_enabled() -> bool:
+    return (os.environ.get("CONFLUENCE_LIVE_TOOLS") or "").strip().lower() in ("1", "true", "yes", "on")
+
+
 def register(ctx):
+    live = _live_confluence_enabled()
     for name, schema, handler in (
         ("atlassian_whoami", _WHOAMI_SCHEMA, _handle_whoami),
         ("confluence_list_spaces", _LIST_SPACES_SCHEMA, _handle_list_spaces),
@@ -982,4 +1008,6 @@ def register(ctx):
         ("jira_get_issue", _GET_ISSUE_SCHEMA, _handle_get_issue),
         ("jira_create_ticket", _CREATE_TICKET_SCHEMA, _handle_create_ticket),
     ):
+        if name in _CONFLUENCE_READ_TOOLS and not live:
+            continue
         ctx.register_tool(name=name, toolset="atlassian", schema=schema, handler=handler)

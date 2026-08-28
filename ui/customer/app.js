@@ -54,9 +54,92 @@
     return node;
   }
 
+  /* Minimal, safe markdown.
+   *
+   * The agent replies in markdown — **bold**, `code`, - lists, [text](url).
+   * Rendering that with textContent shows the asterisks and backticks raw,
+   * which is what shipped first and looked broken. Rendering it with innerHTML
+   * would let a customer's pasted text inject markup, and evals/helpdesk-nl.txt
+   * has two prompt-injection cases precisely because people paste hostile text
+   * in here.
+   *
+   * So: parse a small, fixed subset and BUILD NODES. No innerHTML anywhere,
+   * so nothing in a reply can become live markup. Anything unrecognised falls
+   * through as plain text rather than being dropped. */
+  function inlineMd(host, text) {
+    // Order matters. `code` is tested FIRST because the agent writes things
+    // like `**m.rgsplus.nl**` — backticks wrapping bold. Matching bold first
+    // consumed the inner **…** and left the backticks stranded as literal
+    // characters on screen, which is exactly how this looked when first shipped.
+    // Emphasis markers inside a code span are stripped rather than rendered.
+    //   `code` · [label](url) · **bold** · *italic*
+    var re = /(`([^`]+)`)|(\[([^\]]+)\]\((https?:\/\/[^\s)]+)\))|(\*\*([^*]+)\*\*)|(\*([^*\n]+)\*)/;
+    var m;
+    while ((m = re.exec(text))) {
+      if (m.index) host.appendChild(document.createTextNode(text.slice(0, m.index)));
+      if (m[2] != null) {
+        host.appendChild(el("code", "md-code", m[2].replace(/\*\*?/g, "")));
+      } else if (m[4] != null) {
+        var a = el("a", "md-link", m[4]);
+        a.href = m[5];
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";   // never expose window.opener
+        host.appendChild(a);
+      } else if (m[7] != null) {
+        host.appendChild(el("strong", null, m[7]));
+      } else {
+        host.appendChild(el("em", null, m[9]));
+      }
+      text = text.slice(m.index + m[0].length);
+    }
+    if (text) host.appendChild(document.createTextNode(text));
+  }
+
+  function renderMarkdown(host, raw) {
+    var lines = String(raw == null ? "" : raw).split("\n");
+    var list = null;
+    lines.forEach(function (line) {
+      var trimmed = line.trim();
+
+      // Horizontal rules are document furniture; a chat bubble does not need them.
+      if (/^(---+|\*\*\*+|___+)$/.test(trimmed)) { list = null; return; }
+
+      // Headings: the agent occasionally emits "## Antwoord". Keep the words,
+      // drop the heading — this is a reply, not a document.
+      var h = trimmed.match(/^#{1,6}\s+(.*)$/);
+      if (h) {
+        list = null;
+        var p = el("p", "md-p");
+        inlineMd(p, h[1]);
+        host.appendChild(p);
+        return;
+      }
+
+      var li = trimmed.match(/^[-*+]\s+(.*)$/) || trimmed.match(/^(\d+)\.\s+(.*)$/);
+      if (li) {
+        if (!list) { list = el("ul", "md-list"); host.appendChild(list); }
+        var item = el("li");
+        inlineMd(item, li.length === 3 ? li[2] : li[1]);
+        list.appendChild(item);
+        return;
+      }
+
+      list = null;
+      if (!trimmed) return;
+      var para = el("p", "md-p");
+      inlineMd(para, trimmed);
+      host.appendChild(para);
+    });
+  }
+
   function bubble(text, kind) {
     var wrap = el("div", "msg msg--" + kind);
-    var b = el("div", "msg__bubble", text);
+    var b = el("div", "msg__bubble");
+    if (kind === "user") {
+      b.textContent = text;              // never interpret what a customer typed
+    } else {
+      renderMarkdown(b, text);
+    }
     wrap.appendChild(b);
     add(wrap);
     return b;
@@ -67,7 +150,7 @@
   function renderCitations(host, citations) {
     if (!citations || !citations.length) return;
     var box = el("div", "cites");
-    box.appendChild(el("span", "cites__label", "In de handleiding:"));
+    box.appendChild(el("span", "cites__label", "Bron:"));
     citations.forEach(function (c) {
       if (!c || !c.title || !c.url) return;   // a citation you can't open isn't one
       var a = el("a", "cite", c.title);
@@ -168,11 +251,16 @@
 
     // state=answer with no citations means the model answered without
     // grounding itself in a page. Say so rather than let it pass as sourced.
-    if (state === "answer" && (!data.citations || !data.citations.length)) {
+    // Only flag genuinely unsourced answers. Practice answers cite the helpdesk
+    // in prose and have no URL to link; greetings need no source at all. Warning
+    // on those trains people to ignore the warning.
+    var saysSource = /volgens de helpdesk|bron:|handleiding|kennisbank|faq/i.test(text);
+    var substantial = text.length > 180;
+    if (state === "answer" && !(data.citations || []).length && !saysSource && substantial) {
       var note = el("div", "gap");
       note.appendChild(el("span", "gap__label", "Let op: "));
       note.appendChild(document.createTextNode(
-        "dit antwoord verwijst niet naar een pagina in de handleiding."));
+        "dit antwoord is niet herleid tot een pagina in de handleiding."));
       b.appendChild(note);
     }
 
