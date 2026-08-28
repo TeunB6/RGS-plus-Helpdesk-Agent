@@ -42,6 +42,13 @@ services:
       # the container so the drafts are readable without docker exec, and
       # survive `docker compose down -v`.
       - ./.jira-dryrun:/root/.hermes/jira-dryrun
+      # Customer-supplied import workbooks. import_check REFUSES any path
+      # outside this directory, because the path reaches it via a model that
+      # has just read customer text — so the sandbox has to exist for the tool
+      # to be usable at all. Drop the .xlsx here, then give the agent the
+      # filename. Bind-mounted so putting a file in is a copy, not a
+      # docker exec.
+      - ./.uploads:/root/.hermes/uploads
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -81,12 +88,20 @@ services:
       # FAQ text for a demo.
       RGSPLUS_FAQ_OFFLINE: "${RGSPLUS_FAQ_OFFLINE:-}"
 
+      # ── Import validation ──
+      # The only directory import_check will open a workbook from. Must match
+      # the container side of the ./.uploads mount above; change one and you
+      # must change the other. Empty = the plugin default, ~/.hermes/uploads,
+      # which is that same path — so leaving it unset is correct unless you
+      # remount somewhere else.
+      RGSPLUS_UPLOAD_DIR: "${RGSPLUS_UPLOAD_DIR:-}"
+
       # Which host origins may iframe the agent UI. Empty = framing blocked.
       EMBED_FRAME_ANCESTORS: "${EMBED_FRAME_ANCESTORS:-}"
 
       # start.sh copies each listed var into ~/.hermes/.env so plugin handlers
       # can read them. Anything the plugins need MUST be listed here.
-      HERMES_PASSTHROUGH_VARS: "ATLASSIAN_EMAIL,JIRA_API_KEY,ATLASSIAN_SITE_URL,ATLASSIAN_CLOUD_ID,JIRA_PROJECT_KEY,CONFLUENCE_SPACE_KEYS,RGSPLUS_FAQ_URL,RGSPLUS_FAQ_TTL,RGSPLUS_FAQ_OFFLINE"
+      HERMES_PASSTHROUGH_VARS: "ATLASSIAN_EMAIL,JIRA_API_KEY,ATLASSIAN_SITE_URL,ATLASSIAN_CLOUD_ID,JIRA_PROJECT_KEY,CONFLUENCE_SPACE_KEYS,RGSPLUS_FAQ_URL,RGSPLUS_FAQ_TTL,RGSPLUS_FAQ_OFFLINE,RGSPLUS_UPLOAD_DIR"
 
   rgsplus-bridge:
     build:
