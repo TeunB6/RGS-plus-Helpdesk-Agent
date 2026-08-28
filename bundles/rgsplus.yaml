@@ -67,6 +67,7 @@
 description: "RGS+ helpdesk: answers customer questions from the Confluence knowledge base and the public RGS+ FAQ, escalating what it cannot answer to Jira ticket drafts (dry run)."
 
 skills:
+  - rgsplus-handleiding
   - customer-service
   - confluence-knowledge-lookup
   - rgsplus-faq-lookup

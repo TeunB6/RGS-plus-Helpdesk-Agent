@@ -4,6 +4,7 @@
 # the bundle so this file alone tells you what the running image contains.
 
 skills:
+  - rgsplus-handleiding
   - customer-service
   - confluence-knowledge-lookup
   - rgsplus-faq-lookup
