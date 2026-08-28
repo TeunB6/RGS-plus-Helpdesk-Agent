@@ -11,7 +11,7 @@ seen rendered is a UI you are guessing about -- `kb_unreachable` in particular
 has to look nothing like `unknown`, and that is only checkable by looking.
 """
 import http.server, json, os, socketserver, urllib.parse
-ROOT = os.path.expanduser("~/rgsplus/repo/ui")
+ROOT = os.path.dirname(os.path.abspath(__file__))
 CITE = [{"title":"Objecten beheren","url":"https://rgsplus.atlassian.net/wiki/spaces/HELP/pages/1",
          "space":"HELP","excerpt":"Dubbelklik op de statuskolom om de status te wisselen."}]
 SEQ = [

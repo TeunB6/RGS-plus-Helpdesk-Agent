@@ -146,12 +146,45 @@ fi
 # never fires in practice. Use the Hermes venv python (PyYAML is
 # bundled there) to do a minimal merge that preserves any operator
 # edits to other keys (mcp_servers, plugins, ...).
+
+# ---------------------------------------------------------------------------
+# Latency pins
+# ---------------------------------------------------------------------------
+# Measured on 2026-08-28 from ~/.hermes/logs/agent.log: across 8 turns, tool
+# execution totalled 134s against 3531s of model latency. The agent is not
+# slow because Confluence or Jira are slow (worst tool averages 0.40s) — it is
+# slow because each turn spends 5.4 round trips, and one of them dumps a
+# 1200-2900 token reasoning block at ~60 tok/s. These pins attack that:
+#
+#   REASONING_EFFORT      'medium' produced the 15-40s call; 'low' removes it.
+#   STREAMING             progressive delivery on the webui/gateway surfaces.
+#                         NOTE: this does NOT speed up the bridge, which calls
+#                         the synchronous /api/chat and waits for the complete
+#                         reply by design (see bridge/app/hermes_client.py).
+#   CONTEXT_FILE_MAX_CHARS  SOUL.md is truncated to a window-derived cap (6%
+#                         of the context, 20k chars minimum). We inline ~94k
+#                         chars of skills into it below, so the cap has to be
+#                         raised or the manual gets cut off mid-page.
+#   DISABLE_CLARIFY       the built-in `clarify` tool needs an interactive
+#                         surface and always errors over the bridge
+#                         ("Clarify tool is not available in this execution
+#                         context"), costing a wasted round trip. The model
+#                         reaches for it because the customer-service skill
+#                         has a `clarify` *answer state*; removing the tool
+#                         removes the collision.
+REASONING_EFFORT="${HERMES_REASONING_EFFORT:-low}"
+STREAMING_ENABLED="${HERMES_STREAMING:-true}"
+CONTEXT_FILE_MAX_CHARS="${HERMES_CONTEXT_FILE_MAX_CHARS:-250000}"
+DISABLE_CLARIFY="${HERMES_DISABLE_CLARIFY:-true}"
+
 HERMES_PY="/usr/local/lib/hermes-agent/venv/bin/python3"
 if [ -x "${HERMES_PY}" ]; then
-    "${HERMES_PY}" - "${CONFIG_FILE}" "${MODEL_PROVIDER}" "${MODEL_BASE_URL}" "${MODEL_DEFAULT}" "${MODEL_CONTEXT}" "${MODEL_API_MODE}" <<'PY'
+    "${HERMES_PY}" - "${CONFIG_FILE}" "${MODEL_PROVIDER}" "${MODEL_BASE_URL}" "${MODEL_DEFAULT}" "${MODEL_CONTEXT}" "${MODEL_API_MODE}" \
+        "${REASONING_EFFORT}" "${STREAMING_ENABLED}" "${CONTEXT_FILE_MAX_CHARS}" "${DISABLE_CLARIFY}" <<'PY'
 import sys, os
 import yaml
 config_path, provider, base_url, model, context, api_mode = sys.argv[1:7]
+reasoning_effort, streaming, ctx_file_max, disable_clarify = sys.argv[7:11]
 cfg = {}
 if os.path.isfile(config_path):
     with open(config_path) as f:
@@ -172,10 +205,45 @@ else:
     # No explicit mode for this provider/model combo: drop a stale pin
     # so hermes-agent auto-detects from the endpoint again.
     model_block.pop("api_mode", None)
+
+# --- latency pins (see the comment block above this heredoc) ---------------
+agent_block = cfg.setdefault("agent", {})
+if reasoning_effort:
+    agent_block["reasoning_effort"] = reasoning_effort
+
+cfg.setdefault("streaming", {})["enabled"] = streaming.lower() in ("1", "true", "yes")
+
+try:
+    cfg["context_file_max_chars"] = int(ctx_file_max)
+except (TypeError, ValueError):
+    # A malformed override must not strand SOUL.md at the 20k default
+    # silently, but it must not stop the container either.
+    print(f"start.sh: WARNING ignoring HERMES_CONTEXT_FILE_MAX_CHARS="
+          f"{ctx_file_max!r} (not an integer)", file=sys.stderr)
+
+# Merge into any list already there (bundle-only mode writes its own entries
+# via _library.py) rather than replacing it, and never duplicate.
+disabled = agent_block.get("disabled_toolsets") or []
+if not isinstance(disabled, list):
+    disabled = [t.strip() for t in str(disabled).split(",") if t.strip()]
+want_clarify_off = disable_clarify.lower() in ("1", "true", "yes")
+if want_clarify_off and "clarify" not in disabled:
+    disabled.append("clarify")
+elif not want_clarify_off and "clarify" in disabled:
+    disabled.remove("clarify")
+if disabled:
+    agent_block["disabled_toolsets"] = disabled
+else:
+    agent_block.pop("disabled_toolsets", None)
+
 os.makedirs(os.path.dirname(config_path), exist_ok=True)
 with open(config_path, "w") as f:
     yaml.safe_dump(cfg, f, sort_keys=False)
 print(f"start.sh: pinned model.default={model} provider={provider}")
+print(f"start.sh: pinned reasoning_effort={reasoning_effort or '(unset)'} "
+      f"streaming={cfg['streaming']['enabled']} "
+      f"context_file_max_chars={cfg.get('context_file_max_chars')} "
+      f"disabled_toolsets={agent_block.get('disabled_toolsets', [])}")
 PY
 elif [ ! -f "${CONFIG_FILE}" ]; then
     {
@@ -218,6 +286,33 @@ if [ -d "${STAGING_DIR}" ] && [ -f "${LIBRARY_HELPER}" ]; then
             || echo "seed-library: warning - seeding failed, continuing without library items"
     else
         echo "seed-library: no python3 available, skipping"
+    fi
+fi
+
+# Inline the hot skills into SOUL.md so the model stops paying two round
+# trips per turn to skill_view them (see agent/scripts/preload-skills.py for
+# the measurement this is based on). Must run AFTER library seeding, which is
+# what puts the SKILL.md files in ~/.hermes/skills.
+#
+# Set HERMES_PRELOAD_SKILLS="" to turn it off — the skills stay seeded and
+# reachable via skill_view, so the agent still works, just slower.
+# The order matters: it is the order the model reads them in, so the flow
+# skill comes before the sources it routes to.
+PRELOAD_SKILLS="${HERMES_PRELOAD_SKILLS-customer-service,confluence-knowledge-lookup,rgsplus-faq-lookup,jira-ticket-create,rgsplus-handleiding}"
+PRELOAD_HELPER="/opt/uppr/preload-skills.py"
+if [ -n "${PRELOAD_SKILLS}" ] && [ -f "${PRELOAD_HELPER}" ]; then
+    PRELOAD_PY="/usr/local/lib/hermes-agent/venv/bin/python3"
+    if [ ! -x "${PRELOAD_PY}" ]; then
+        PRELOAD_PY="$(command -v python3 || true)"
+    fi
+    if [ -n "${PRELOAD_PY}" ]; then
+        "${PRELOAD_PY}" "${PRELOAD_HELPER}" \
+            --soul "${HERMES_DIR}/SOUL.md" \
+            --skills-dir "${HERMES_DIR}/skills" \
+            --skills "${PRELOAD_SKILLS}" \
+            || echo "preload-skills: warning - inlining failed, agent will skill_view instead"
+    else
+        echo "preload-skills: no python3 available, skipping"
     fi
 fi
 

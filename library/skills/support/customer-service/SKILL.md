@@ -242,6 +242,12 @@ answer or an escalation** below, whose "nothing after it" rule is about *prose*.
 | `kb_unreachable` | **a 401/403/404 from Confluence — you could not read the KB at all** |
 | `safety` | the customer pasted a password, or personal data that must not be stored |
 
+`clarify` is a value you *write* in this block. It is not a tool. Hermes ships
+a built-in tool that happens to be called `clarify`; it needs an interactive
+surface, is disabled in this deployment, and calling it only burns a round
+trip. To clarify something, make the question your reply and set
+`state: clarify`.
+
 **`citations`** — the pages you actually used, with `title` and `url`. Not the
 pages you searched; the ones the answer rests on. A citation without a URL is
 dropped, so include both. Both sources are citable, and the shape is the same:
@@ -377,7 +383,7 @@ before any answer — never appended to one.
    relevant one shows single-currency export only.
 3. **Assess** — topic covered, this case not. Partial answer + escalate.
 4. **Duplicate check** —
-   `project = SUP AND status != Done AND text ~ "invoice export currency"`
+   `project = HELP AND status != Done AND text ~ "invoice export currency"`
    → nothing open.
 5. **Draft** — `jira_create_ticket`, `issue_type: Bug`,
    summary `"Invoice PDF export returns 500 for multi-currency orders"`,

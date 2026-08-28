@@ -19,7 +19,7 @@ required_environment_variables:
     required_for: "Jira access"
   - name: JIRA_PROJECT_KEY
     prompt: "Jira project key for customer-service tickets"
-    help: "e.g. SUP. Run jira_list_projects to see the available keys."
+    help: "HELP for the RGS+ helpdesk. scripts/preflight-atlassian.py lists the keys the account can see."
     required_for: "Drafting tickets without passing a project key every time"
 ---
 
@@ -67,7 +67,7 @@ an engineer's time and makes the agent look useless.
 Always run `jira_search_issues` before drafting:
 
 ```
-project = SUP AND status != Done AND text ~ "invoice export currency"
+project = HELP AND status != Done AND text ~ "invoice export currency"
 ```
 
 If a matching open issue exists, **don't draft a duplicate.** Read it
@@ -75,24 +75,35 @@ with `jira_get_issue` and tell the customer it's already being tracked
 — that's a better answer than a new ticket, and you can often share the
 current status.
 
-## Before drafting: check the project accepts your issue type
+## The project and its issue types — already known, don't go looking
 
-`jira_get_create_meta` lists the issue types a project actually has and
-which fields each requires. Projects differ — one has `Support
-Request`, the next only has `Task` and `Bug`. Run it once per project
-and reuse the answer; don't guess `issue_type` and don't assume `Bug`
-exists.
+Drafts go to **`HELP`** (Jira project "Helpdesk"). That is what
+`JIRA_PROJECT_KEY` is set to, so `jira_create_ticket` addresses it by
+default and you never pass `project_key` yourself.
 
-Pick by what the question *is*:
+`HELP` accepts exactly three issue types:
 
 | The question is | Issue type |
 | --- | --- |
-| Something is broken / errors / wrong output | `Bug` (if the project has it) |
-| A how-do-I the docs don't cover | `Task` |
-| A request for something that doesn't exist yet | `Story` / `Task` |
+| Something is broken / errors / wrong output | `Bug` |
+| A how-do-I the docs don't cover | `Support` |
+| A request for something that doesn't exist yet | `New Feature` |
 
-When unsure, `Task`. Getting the type slightly wrong is recoverable;
+When unsure, `Support`. Getting the type slightly wrong is recoverable;
 a vague description is not.
+
+**Do not call `jira_get_create_meta`, and do not call
+`jira_list_projects`.** The three types above are the answer those calls
+return, and each call is a round trip to the model — the dominant cost in
+this deployment. There is also no `Task` type in `HELP`: guessing it
+produces a draft that would be rejected on submission, so pick from the
+table.
+
+The one time `jira_get_create_meta` is warranted: `jira_create_ticket`
+came back with an error naming an unknown issue type or a missing required
+field. Then the project changed under this skill — read the meta, draft
+with what it reports, and say in the ticket `context` that the type table
+here is stale.
 
 ## What makes a ticket actionable
 

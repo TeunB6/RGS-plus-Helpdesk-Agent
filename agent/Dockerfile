@@ -169,7 +169,10 @@ COPY library/ /tmp/library/
 COPY agent/scripts/apply-branding.sh /tmp/apply-branding.sh
 COPY agent/scripts/apply-library.sh  /tmp/apply-library.sh
 COPY agent/scripts/_library.py       /opt/uppr/_library.py
-RUN chmod +x /tmp/apply-branding.sh /tmp/apply-library.sh \
+# Runs at container start (start.sh), after library seeding — it needs the
+# seeded ~/.hermes/skills, which only exists in the volume at runtime.
+COPY agent/scripts/preload-skills.py /opt/uppr/preload-skills.py
+RUN chmod +x /tmp/apply-branding.sh /tmp/apply-library.sh /opt/uppr/preload-skills.py \
     && /tmp/apply-branding.sh /hermes-webui "/tmp/clients/${UPPR_CLIENT}" /etc/uppr-skin-key \
     && /tmp/apply-library.sh  /tmp/library  "/tmp/clients/${UPPR_CLIENT}" /etc/uppr-library \
     && rm -rf /tmp/clients /tmp/library /tmp/apply-branding.sh /tmp/apply-library.sh
