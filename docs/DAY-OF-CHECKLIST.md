@@ -140,8 +140,8 @@ uselessly. Check what's actually in those spaces before promising anything.
 ### 3. Build and start it
 
 ```bash
-scripts/stage-build-context.sh    # required before every build
-docker compose up -d --build
+mkdir -p .jira-dryrun .uploads    # bind mounts; root-owned if Docker creates them
+docker compose up -d --build      # --build every time: seeding runs at build time
 open http://localhost:8080
 ```
 
@@ -207,7 +207,7 @@ to the RGS+ application. Check it against
 | Bot says the FAQ doesn't cover something it does | Lexical miss on Dutch wording | It should fall back to `faq_list` — check `rgsplus-faq-lookup` seeded into `~/.hermes/skills/` |
 | FAQ answers are stale or empty | rgsplus.com unreachable, or the page markup changed | `scripts/test-faq-plugin.py --live`. A `snapshot` source in the tool response means the live fetch failed; the bot still answers |
 | Bot gives a price for a specific customer | It extrapolated from the published range | Defect. The quote-don't-commit rule is in `rgsplus-faq-lookup` and `SOUL.md`; check both seeded |
-| Skill/plugin edits have no effect | Built without re-staging the context | `scripts/stage-build-context.sh` then rebuild. Seeding is first-write-only: delete the item from the `hermes-data` volume to re-seed it |
+| Skill/plugin edits have no effect | Restarted instead of rebuilt — seeding runs at build time | `docker compose up -d --build`. Seeding is first-write-only: delete the item from the `hermes-data` volume to re-seed it |
 | Widget panel opens blank | Agent refuses to be framed | Set `EMBED_FRAME_ANCESTORS`, restart the agent |
 | Bridge `502`, detail mentions the route | `HERMES_SEND_PATH` wrong | `scripts/probe-hermes-api.sh` |
 | Bridge won't start | `BRIDGE_API_KEY` unset or too short | `openssl rand -hex 32` |

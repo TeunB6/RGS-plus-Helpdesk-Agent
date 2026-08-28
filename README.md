@@ -18,7 +18,7 @@ rgsplus-bridge          ← the callable agent module (this repo, bridge/)
    │  ├── /v1/peers           call other agent modules
    │  └── bearer auth
    ▼
-rgsplus-agent           ← Hermes agent in Docker (uppr_hermes image + this repo's library/)
+rgsplus-agent           ← Hermes agent in Docker (agent/ base + this repo's library/)
    ├── confluence_*  → the RGS+ knowledge base   (read-only)
    ├── faq_*         → rgsplus.com/faq            (read-only, public)
    └── jira_*        → customer's Jira Cloud site (search + read; create = DRY RUN)
@@ -75,7 +75,8 @@ behind an explicit `ATLASSIAN_ALLOW_WRITES=true` gate, then revisiting the
 | [bundles/rgsplus.yaml](bundles/rgsplus.yaml) | The helpdesk vertical: which library items an RGS+ deployment gets. |
 | [clients/rgsplus/](clients/rgsplus/) | This client's manifest, branding and `SOUL.md`. No specialist profiles — the main agent runs the whole flow. |
 | [widget/](widget/) | Drop-in `<script>` chat launcher for the RGS+ application. |
-| [scripts/](scripts/) | `stage-build-context.sh` (assemble the Docker build context — **run before every build**), `preflight-atlassian.py` (verify the day-of credentials), `fetch-faq.py` (refresh the FAQ snapshot), `test-faq-plugin.py` (FAQ parser + search self-check), `eval-questions.py` (ask the running bot a list of questions), `probe-hermes-api.sh`. |
+| [agent/](agent/) | The base agent image — Hermes + web UI + nginx + the branding/seeding scripts. Vendored from `uppr_hermes`; nothing RGS+-specific. See [agent/README.md](agent/README.md). |
+| [scripts/](scripts/) | `preflight-atlassian.py` (verify the day-of credentials), `fetch-faq.py` (refresh the FAQ snapshot), `test-faq-plugin.py` (FAQ parser + search self-check), `eval-questions.py` (ask the running bot a list of questions), `probe-hermes-api.sh` (find the routes the agent container actually serves). |
 | [evals/](evals/) | Question files to run the bot against — real helpdesk mails plus the cases where it should decline or escalate. |
 | [docs/DAY-OF-CHECKLIST.md](docs/DAY-OF-CHECKLIST.md) | What to collect on the day, and what to do with it. |
 
@@ -122,6 +123,24 @@ and 2026-05-12. A token issued before that window may already be dead; its
 scoped replacement addresses the site by cloud id, which is why
 `ATLASSIAN_CLOUD_ID` exists alongside `ATLASSIAN_SITE_URL`.
 
+## Prerequisites
+
+| | |
+| --- | --- |
+| **Docker** with Compose v2 | `docker compose version`. Everything runs in containers; nothing is installed on the host. |
+| **Python 3.9+** | For the scripts in [scripts/](scripts/). Stdlib only — no `pip install`, no virtualenv. |
+| **Network access at build time** | The agent image clones `hermes-agent` and `hermes-webui` from GitHub. See [agent/README.md](agent/README.md#not-vendored-and-not-vendorable-the-two-real-upstreams). |
+| `jq` *(optional)* | Only to pretty-print the `curl` examples below. |
+
+No second checkout is needed. The base agent image is vendored under
+[agent/](agent/), so a fresh `git clone` of this repo builds on its own.
+
+Two values in `.env` are **mandatory** — unlike the Atlassian block, nothing
+starts without them:
+
+- `BRIDGE_API_KEY` — the bridge refuses to boot if it is unset. `openssl rand -hex 32`.
+- An LLM key — `OPENROUTER_API_KEY`, or `ANTHROPIC_API_KEY` with `LLM_PROVIDER=anthropic`.
+
 ## Quick start
 
 ```bash
@@ -130,10 +149,10 @@ $EDITOR .env
 
 python3 scripts/preflight-atlassian.py   # don't skip this
 
-# Assemble the build context: the uppr_hermes checkout at $HERMES_CONTEXT,
-# overlaid with this repo's library/ and clients/. Re-run after every change
-# to a skill, plugin, manifest or SOUL.md.
-scripts/stage-build-context.sh
+# Create the bind-mount target for the Jira ticket drafts BEFORE the first
+# `up`. Docker creates a missing bind source itself, as root — and then the
+# drafts a human is supposed to read need sudo to open.
+mkdir -p .jira-dryrun .uploads
 
 docker compose up -d --build
 
@@ -141,11 +160,11 @@ open http://localhost:8080    # chat UI (the widget iframes this)
 curl -s localhost:8081/healthz
 ```
 
-The staging step is not optional and not a convenience: the agent's Dockerfile
-lives in `uppr_hermes` and `COPY`s `clients/` and `library/` from *its own*
-build context, seeding them at build time. Docker has no way to read those two
-directories from a second repo, so they are copied into one context first.
-Rationale in the script's header comment.
+The agent image builds from the repository **root** with `agent/Dockerfile`,
+because that Dockerfile `COPY`s `clients/` and `library/` from its own build
+context and seeds them into `~/.hermes` at build time. So a change to a skill,
+plugin, manifest or `SOUL.md` needs a rebuild — `docker compose up -d --build`
+— not just a restart.
 
 Ask the bridge a question the way the RGS+ app will:
 
