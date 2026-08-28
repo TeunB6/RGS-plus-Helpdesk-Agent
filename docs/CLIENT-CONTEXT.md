@@ -226,7 +226,15 @@ every correct row.
 
 This maps directly onto the second of the three endpoints sketched in `notes/plan.md` at
 `9dfdcd5` — *"xlsx sjabloon invullen en versturen, human in the loop"*. That file was removed
-in `9c2442f`; the text answer and the Jira draft are built, **the xlsx path is not**.
+in `9c2442f`.
+
+**Now ported**, as `library/tools/support/import_check/`, with both deliberate behaviours
+above intact. It landed as an agent **tool** rather than the third bridge endpoint that was
+sketched: the agent calls it mid-conversation, so RGS+ does not have to build an upload flow
+before this is worth anything. The file still has to reach the container — `docker-compose`
+bind-mounts `./.uploads`, and the tool refuses any path outside it. What is *not* built is a
+customer-facing upload path in the RGS+ application itself; today a human puts the workbook in
+that directory.
 
 ---
 
@@ -265,6 +273,13 @@ so the answer can say *"dat staat onder Stamgegevens; jouw rol heeft daar geen t
 vraag je beheerder om…"* instead of confidently pointing at a menu that isn't there.
 
 That is one table from Brian, not an authorization system.
+
+**Half of this is built.** (1) is done: `user.role` and `user.licence` travel on `/v1/chat`,
+reach the agent in the metadata preamble, and the customer-service skill is told to answer for
+the role the user has and to name who *can* do it otherwise. (2) — the role → visible-menus
+map — is still outstanding, so the agent reasons from Brian's description of the permission
+model rather than from a table. Until that table exists, expect it to be right about
+*Stamgegevens* and vague about everything else.
 
 **Open:** does the in-app "?" pop-up already respect role? If it does, part of this is solved
 for free. If everyone sees the same page, the assistant has to do the scoping itself.
@@ -424,7 +439,10 @@ covered:
   failure mode.
 
 There is also no case that submits an actual broken `.xlsx` (`import-formaat` is a
-how-question), which follows from the xlsx endpoint not existing yet — see §5.
+how-question). That *followed* from the validator not existing; with `import_check` in the
+bundle it no longer does. A case that puts a deliberately broken workbook in the upload
+directory and checks the bot names the skipped row — rather than searching Confluence and
+declaring it undocumented — is now the obvious next eval to write.
 
 **On model choice.** Establish the quality ceiling first on a strong (EU-hosted) model, measure,
 *then* descend to cheaper and local until quality drops. Starting cheap makes every bad answer
@@ -550,14 +568,30 @@ RGS+ team before any customer** has four advantages that are hard to get any oth
 
 Not criticism of a scaffold — just the delta, so nothing is assumed to be handled.
 
+Rows are listed as closed rather than deleted, so a reader who finds this document later can
+tell what was *addressed* from what was never a problem.
+
+### Closed
+
+| Was a gap | Closed by |
+| --- | --- |
+| **No role / licence handling in the bridge** | `ChatRequest.user` documents `role` and `licence`, `_with_context` folds them into the preamble and tells the agent to scope on them, and the customer-service skill gains *"Answer for the role the user actually has"* — §6's rule, written down. **The eval half is still open, below** |
+| **The importer's silent failures could not be diagnosed** | `import_check` reads each template's own `uitleg` sheet as the spec and reports the *consequence* of every fault. §5, built as an agent tool rather than the bridge endpoint originally sketched |
+| **The front end could not tell "no answer" from "KB is down"** | The agent appends a `sam-meta` trailer, the bridge parses it off, and `/v1/chat` returns `state` — with `unknown` and `kb_unreachable` as separate values. §6's *"it is a rendering problem"* reading, made a contract |
+| **Only one knowledge source** | The public FAQ is a second source with its own routing skill, so commercial questions stop being answered out of a product KB that does not cover them |
+
+### Still open
+
 | Gap | Detail |
 | --- | --- |
-| **No role / licence / tenant handling anywhere** | The bridge's `context` object carries `screen` and `version` — so version was anticipated — but no `role` and no `licence`. §6 is not implemented, and `evals/helpdesk-nl.txt` does not test it either (only `context.screen`, 3×). The hook exists: add the fields, have RGS+ populate them, add paired admin/user eval cases |
-| **Trust boundary on `context`** | The bridge authenticates the *RGS+ application*, not the end user, so `context.role` is whatever RGS+'s backend asserts. Acceptable if calls go **backend → bridge**; not acceptable if the browser calls the bridge directly, which `CORS_ALLOW_ORIGINS` allows for. Insist on the backend path |
-| **The xlsx endpoint is unbuilt** | Sketched in `notes/plan.md` at `9dfdcd5` (file since removed); §5 describes what it should do, and a verified validator already exists to port |
+| **Nothing exercises role or licence in `evals/`** | The bridge and the skill now handle role; `evals/helpdesk-nl.txt` still uses only `# context.screen`, 3×. The single requirement Brian stated most directly remains **untested**. Paired admin/user cases where the correct answers *differ* is still the cheap high-value fix |
+| **Trust boundary on `user.role`** | The bridge authenticates the *RGS+ application*, not the end user, so `role` is whatever the caller asserts. `schemas.py` and the skill document this; neither enforces it, and neither can. Acceptable **backend → bridge**; not acceptable from the browser, which `CORS_ALLOW_ORIGINS` still permits. Insist on the backend path |
+| **`sam-meta` leaks on the widget path** | `widget/rgsplus-chat.js` iframes the agent UI directly, so nothing strips the trailer and the customer sees a code block under every answer. The bridge path is unaffected. The renderer fix belongs in `uppr_hermes`, which this repo does not own — see the note in `bridge/app/agent_meta.py` |
+| **`openpyxl` is not installed by the base image** | `import_check` needs it; the agent image is built from `uppr_hermes`, so this repo cannot add it. `scripts/stage-build-context.sh` warns at staging time instead of letting it surface as a customer-facing error |
+| **No customer-facing upload path** | §5. `import_check` reads from a mounted directory; nothing in the RGS+ application puts a workbook there, so today a human does |
 | **Default LLM config is US-routed** | §9a. Contradicts a written public commitment by the client |
 | **No coverage measurement** | §10. `evals/` checks behaviour on 28 hand-written cases; it cannot tell you what fraction of the real ticket population Confluence can answer. That needs the back-catalogue |
-| **Nobody owns `.jira-dryrun/`** | §11 |
+| **Nobody owns `.jira-dryrun/`** | §11. `.uploads/` now has the same problem: customer workbooks land there and nobody is named as responsible for clearing them |
 | **Branding is placeholder** | §12 — real values available now |
 
 ---
