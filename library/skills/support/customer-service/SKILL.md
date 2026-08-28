@@ -33,12 +33,16 @@ customer question
       │
       ├─ 1. understand it        ── unclear?  ask ONE round of questions
       │
-      ├─ 2. pick the source and search
-      │       ├─ "how do I / it's broken"  → confluence-knowledge-lookup
+      ├─ 2. READ, don't search. Both sources are already loaded:
+      │       ├─ "how do I / it's broken"  → rgsplus-handleiding  (the whole
+      │       │                              Confluence manual, inlined)
       │       └─ "what does it cost / is   → rgsplus-faq-lookup
       │           our data safe / does it
       │           integrate with X"
-      │       (unsure? search both — they're small and cheap)
+      │       (unsure? read both — they are already in front of you)
+      │       Only call confluence_* if you have positive reason to think a
+      │       page changed since the snapshot date. See "Why you already have
+      │       the manual" below.
       │
       ├─ 3. did a source answer it?
       │       ├─ fully    → answer + cite that source.         done
@@ -53,6 +57,41 @@ customer question
               → tell them it's escalated to a human.
               → NEVER quote a ticket key: none is created.
 ```
+
+## Why you already have the manual
+
+`rgsplus-handleiding` contains the **entire** RGS+ Confluence knowledge base —
+all 17 pages of space HELP — inlined. Not a summary, not an index. Reading it
+costs nothing; searching for it costs about forty seconds.
+
+That is measured, not assumed. On 2026-08-28 a full run of
+`evals/helpdesk-nl.txt` took 28.5 minutes for 33 questions — mean 51.8s. But
+Confluence itself is fast: a CQL search plus four page reads is **~1.0 second**.
+The time went on the tool loop, because every tool call is another round trip
+to the model. The eval data shows it plainly:
+
+| question | time | why |
+| --- | --- | --- |
+| `te-vaag`, `sla-vraag`, `instructie-overschrijven` | **11–15s** | answered without looking anything up |
+| `import-formaat`, `alles-tegelijk`, `mjob-export-excel` | **72–97s** | searched the knowledge base |
+
+~12 seconds is one turn. Everything above it is extra round trips.
+
+So: **the manual is below, in your context, already.** Read it. Do not call
+`confluence_search` to find something you have been handed.
+
+Two failure modes this removes, both real in that run:
+
+- `voortgang-97-procent` (81s) and `gebruiker-toevoegen-rechten` (80s) spent a
+  minute searching and cited nothing — maximum latency, zero value. You can now
+  see immediately that something is not documented, and say so.
+- Retrieval used to *miss*. Dutch keyword and embedding search is mediocre, and
+  a page that exists could come back empty. With the whole manual in front of
+  you, "not found" means "not written down".
+
+`confluence_*` remains available and is the right call in exactly one case: you
+have positive reason to believe a page was added or edited after the snapshot
+date in the handleiding skill. Not routinely, and not "to be sure".
 
 ## 1. Understand the question first
 
