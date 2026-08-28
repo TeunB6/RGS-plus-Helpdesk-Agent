@@ -1,0 +1,72 @@
+/* RGS+ design tokens.
+ *
+ * Lifted from RGS+'s own stylesheet (theme-creative-child/style-critical.css),
+ * so these are their real values, not an approximation. Shared by every Sam
+ * surface -- never hardcode a hex in a component.
+ *
+ * Two things that are easy to get wrong and make a "branded" build read as off:
+ *   1. Their PRIMARY button is GREEN (--c-3). Blue is identity and secondary.
+ *   2. The page background is a cool blue-white (--c-white-1), not #fff.
+ *
+ * The logo's own 7 colours (#9AC31C #5D367C #4B8AC9 #EF7D00 #FFE000 #E40E20
+ * #A3C5D2) are artwork only. Using them for UI chrome is the most common way
+ * this goes wrong -- they are deliberately absent below.
+ */
+
+:root {
+  /* --- brand blues: identity, links, secondary actions --- */
+  --c-1: #297ACC;          /* primary brand blue, logo colour, link hover */
+  --c-1a: #2163A6;         /* darker -- hover/pressed */
+  --c-2: #0C7FF2;          /* bright blue -- secondary buttons */
+  --c-2a: #0A6BCC;
+
+  /* --- action green: this is the CTA colour --- */
+  --c-3: #23C477;
+  --c-3a: #1A9158;
+
+  /* --- neutrals --- */
+  --c-white-1: #E0F0FF;    /* default page background */
+  --c-white-2: #FFFFFF;    /* cards, surfaces */
+  --c-white-3: #C2DAF2;
+  --c-gray-1: #CBDFEC;     /* borders, dividers */
+  --c-gray-2: #B8C5D4;     /* disabled, placeholder */
+  --c-black-1: #2D3B59;    /* body text, headings on light */
+  --c-black-2: #202A40;
+  --c-black-3: #080A0F;
+
+  /* --- status --- */
+  --c-error: #EA2D2D;
+  --c-succes: #38BD48;     /* their spelling; NOT the same green as --c-3 */
+
+  /* Amber is ours, not theirs: RGS+ publish no warning colour, and
+     kb_unreachable / safety must not be red (nothing is broken for the user
+     and nothing failed) nor green. Chosen to sit against --c-white-1. */
+  --c-warn: #B26A00;
+  --c-warn-bg: #FFF4E0;
+  --c-warn-border: #F0C77E;
+
+  /* --- type ---
+     Outfit + Kanit, both SIL OFL. RGS+ SELF-HOST these as woff2 and make no
+     request to fonts.googleapis.com anywhere on their site. Match that: drop
+     the woff2 files in ui/fonts/ and uncomment @font-face below. Do not add a
+     Google CDN link -- a customer running a 58-question security review will
+     look, and it would contradict RGS+'s own EU-hosting posture. */
+  --font-default: 'Outfit', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-headers: 'Kanit', var(--font-default);
+  --font-size: 16px;
+
+  /* --- shape --- */
+  --radius-s: 0.25rem;
+  --radius-l: 1rem;
+  --stroke: 1.5px;
+  --gutter: 1.25rem;
+}
+
+/*
+@font-face { font-family:'Outfit'; src:url('fonts/outfit-regular.woff2') format('woff2');
+             font-weight:400; font-display:swap; }
+@font-face { font-family:'Outfit'; src:url('fonts/outfit-medium.woff2') format('woff2');
+             font-weight:500; font-display:swap; }
+@font-face { font-family:'Kanit';  src:url('fonts/kanit-medium.woff2')  format('woff2');
+             font-weight:500; font-display:swap; }
+*/
