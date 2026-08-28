@@ -1,0 +1,338 @@
+{
+  "source_url": "https://rgsplus.com/faq/",
+  "fetched_at": "2026-08-28T10:44:20Z",
+  "item_count": 36,
+  "jsonld_question_count": 37,
+  "items": [
+    {
+      "id": "faq-2286",
+      "question": "Wat kan ik met rgsplus?",
+      "answer": "Op een praktische manier aan de slag met property management. Beheer van objecten met strategie, inventarisatie, inspecties en scenarios en DMJOP’s.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-2286"
+    },
+    {
+      "id": "faq-450",
+      "question": "Hoe helpt RGS+ bij Resultaatgericht Samenwerken (RGS)?",
+      "answer": "Het waarborgen van uniformiteit, het verkrijgen van overzicht en inzicht in vastgoedcomplexen, het ordenen en beheren van vastgoeddata, het garanderen van kwaliteitsafspraken, het waarborgen van prijzenboeken en het effectief samenwerken binnen één database.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-450"
+    },
+    {
+      "id": "faq-452",
+      "question": "Wat gebeurt er met de ingevoerde data?",
+      "answer": "De data staat in beveiligde database in twee groene tier3 datacenters in EU met monitoring en back-up.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-452"
+    },
+    {
+      "id": "faq-888",
+      "question": "Wie is eigenaar van de data?",
+      "answer": "De klant (licentiehouder) is eigenaar van de data.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-888"
+    },
+    {
+      "id": "faq-898",
+      "question": "Kan ik koppelen met andere software systemen?",
+      "answer": "Op dit moment zijn we bezig met het koppelen van de softwarepakketten AFAS, Exact Bouw, IBIS Trad en RAPP. Daarnaast hebben we een API beschikbaar voor integratie met KWINS en Power BI.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-898"
+    },
+    {
+      "id": "faq-901",
+      "question": "Hoe veilig is RGS+?",
+      "answer": "RGS+ maakt gebruik van de meest moderne (veiligheids)technieken. Ook is het mogelijk om Single sign-on te koppelen of een MFA. Daarnaast zijn wij bezig met het behalen van onze ISO27001-certificering.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-901"
+    },
+    {
+      "id": "faq-903",
+      "question": "Is er single sign on mogelijkheid?",
+      "answer": "Ja, dit is zeker mogelijk. Geef dit voor de implementatie aan zodat wij hier rekening mee kunnen houden bij de inrichting.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-903"
+    },
+    {
+      "id": "faq-910",
+      "question": "Is er helpdesk beschikbaar?",
+      "answer": "Onze helpdesk is op werkdagen bereikbaar van 8.30 tot 17.00 uur, behalve tijdens feestdagen.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-910"
+    },
+    {
+      "id": "faq-912",
+      "question": "Hoe moeilijk is RGS+ om te gebruiken?",
+      "answer": "RGS+ is zeer eenvoudig te gebruiken. Aan een halve dag training heb je meer dan voldoende.",
+      "categories": [
+        "Algemeen",
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-912"
+    },
+    {
+      "id": "faq-914",
+      "question": "Zijn er import/export mogelijkheden?",
+      "answer": "De software van RGS+ is zeer flexibel en biedt in alle modules van de applicatie zowel import- als exportmogelijkheden.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-914"
+    },
+    {
+      "id": "faq-916",
+      "question": "Kan ik met meerdere mensen werken in RGS+?",
+      "answer": "Ja, dit kan. Dit werkt het beste wanneer je beiden met een eigen account inlogt. Je kunt alleen niet met meerdere personen in dezelfde inspectie werken.",
+      "categories": [
+        "Algemeen",
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-916"
+    },
+    {
+      "id": "faq-918",
+      "question": "Kan ik zelf gebruikers aanmaken en kost dat geld?",
+      "answer": "Wanneer je over administrator rechten beschikt kun je zelf gebruikers aanmaken en uitgeven. Hier zijn GEEN extra kosten mee gemoeid.",
+      "categories": [
+        "Algemeen",
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-918"
+    },
+    {
+      "id": "faq-921",
+      "question": "Kan ik gebruikers een deel van de objecten toekennen?",
+      "answer": "Aan elke gebruiker die je aanmaakt, kun je specifieke rechten en rollen toekennen, zoals toegang tot bepaalde objecten/opdrachtgevers. Daarnaast kun je bepalen welke acties de gebruiker binnen een object mag uitvoeren.",
+      "categories": [
+        "Algemeen",
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-921"
+    },
+    {
+      "id": "faq-923",
+      "question": "Kan ik ontwikkelwensen aangeven?",
+      "answer": "Ontwikkelen kunnen wij niet alleen. Wij werken dan ook graag samen met jou als klant. Wensen kun je kenbaar maken bij jouw contactpersoon of via [info@rgsplus.com](mailto:info@rgsplus.com).",
+      "categories": [
+        "Algemeen",
+        "Helpdesk"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-923"
+    },
+    {
+      "id": "faq-930",
+      "question": "Wat onderscheidt RGS+ van andere software?",
+      "answer": "RGS+ is een compleet propertymanagementpakket, waarin samenwerken, inspecteren en het opstellen van MJOP’s (Meerjaren OnderhoudsPlannen) centraal staan.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-930"
+    },
+    {
+      "id": "faq-944",
+      "question": "Kan ik tijd besparen door gebruik van RGS+?",
+      "answer": "Met RGS+ maak je je processen efficiënter en automatiseer je waar mogelijk. Hoewel een exacte tijdsbesparing niet te voorspellen is, aangezien dit afhankelijk is van de gebruiker, is het duidelijk dat het systeem een aanzienlijke tijdsbesparing oplevert.",
+      "categories": [
+        "Algemeen",
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-944"
+    },
+    {
+      "id": "faq-950",
+      "question": "Ben ik voor accountbeheer afhankelijk van RGS+?",
+      "answer": "Nee. Dat ben je niet, de eigen administrator kan zelf accounts uitgeven of intrekken. Op verzoek kan RGS+ daar ook bij ondersteunen.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-950"
+    },
+    {
+      "id": "faq-954",
+      "question": "Kan ik in de software communiceren met mijn ketenpartners?",
+      "answer": "In de software is bij zowel de inspectie- als de scenariomodule een chatfunctie ingebouwd. Hiermee kun je vragen stellen, feedback geven of akkoord geven aan je opdrachtgever of ketenpartner.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-954"
+    },
+    {
+      "id": "faq-940",
+      "question": "Kan ik een overzicht krijgen over meerdere objecten?",
+      "answer": "Via data-analyse kun je zelf overzichten inzien en ook uitdraaien van zowel inspecties als scenario’s.",
+      "categories": [
+        "Algemeen"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-940"
+    },
+    {
+      "id": "faq-890",
+      "question": "Wat kost het?",
+      "answer": "Het licentiemodel is gericht op samenwerking en is gebaseerd op een vast licentiebedrag per jaar, afhankelijk van de omvang van de organisatie of het woningbezit. De jaarkosten variëren tussen €1.400,- en €40.000,- per jaar.",
+      "categories": [
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-890"
+    },
+    {
+      "id": "faq-892",
+      "question": "Kan ik de klant ook toegang geven?",
+      "answer": "In RGS+ kun je zelf gebruikers aanmaken met specifieke rechten en filters. Zo kun je jouw klant alleen toegang geven tot zijn/haar eigen objecten in de software, met de lees- en schrijfrechten die jij bepaalt.",
+      "categories": [
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-892"
+    },
+    {
+      "id": "faq-894",
+      "question": "Kan ik zelf onderaannemers aanmaken?",
+      "answer": "In RGS+ kun je zelf gebruikers aanmaken met bepaalde rechten en filters. Op deze manier kan je jouw onderaannemers toegang geven tot alleen zijn/haar eigen objecten in de software met de lees en schrijfrechten die jij wilt.",
+      "categories": [
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-894"
+    },
+    {
+      "id": "faq-896",
+      "question": "Hoe snel kan ik starten?",
+      "answer": "Na het afsluiten van de licentieovereenkomst wordt er een dagdeel gepland voor de instructie en implementatie van de software. Hierna kun je de software gelijk gebruiken. Dit kan op zeer korte termijn doordat wij snel en flexibel kunnen schakelen.",
+      "categories": [
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-896"
+    },
+    {
+      "id": "faq-946",
+      "question": "Hoe werkt de implementatie, hoe snel is RGS+ door mijn team te gebruiken?",
+      "answer": "Na ondertekening van de offerte neemt een consultant van RGS+ contact met je op om de specifieke wensen voor de inrichting van de software en de planning van de instructie te bespreken. De consultant zal verschillende sjablonen sturen, zodat deze voor de eerste training in de software zijn geïmplementeerd, zodat je direct na de training aan de slag kunt.",
+      "categories": [
+        "Pakketten"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-946"
+    },
+    {
+      "id": "faq-905",
+      "question": "Hebben jullie standaard inspectielijsten?",
+      "answer": "Wij hebben standaardinspectielijsten voor zowel de dak als gevel. Quickscans en nulmeting, de NEN2767, KIB en de diverse ERM-lijsten.",
+      "categories": [
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-905"
+    },
+    {
+      "id": "faq-907",
+      "question": "Kan ik eigen inspectielijst gebruiken?",
+      "answer": "Ja, dat kan. Deze kan worden aangemaakt bij de stamgegevens wanneer je over de administrator rechten beschikt.",
+      "categories": [
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-907"
+    },
+    {
+      "id": "faq-928",
+      "question": "Is de inspectie-applicatie geschikt voor mobiel gebruik?",
+      "answer": "De inspectie-applicatie is specifiek ontwikkeld voor mobiele telefoon en tablet.",
+      "categories": [
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-928"
+    },
+    {
+      "id": "faq-952",
+      "question": "Wat is er mogelijk met de inspectiemodule?",
+      "answer": "RGS+ is geschikt voor het uitvoeren van verschillende soorten inspecties, zoals quickscans, uitvoeringskeuringen, aanvangskeuringen en eindkeuringen voor vastgoedonderhoudsbedrijven. Dit kan op basis van NEN, VAC, KiB, Bureau Onderhoud of een eigen inspectielijst. Daarnaast is RGS+ ook uitstekend voor het uitvoeren van dakinspecties en valbeveiligingsinspecties, bijvoorbeeld voor de WKB of renovaties.",
+      "categories": [
+        "Inspectie"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-952"
+    },
+    {
+      "id": "faq-926",
+      "question": "Hoe snel wordt er gereageerd?",
+      "answer": "Dit heeft te maken met de urgentie van het issue. Wij streven een reactietermijn van 1 werkdag.",
+      "categories": [
+        "Helpdesk"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-926"
+    },
+    {
+      "id": "faq-948",
+      "question": "Kan ik rechten en rollen instellen?",
+      "answer": "De administrator kan zelf rollen aanmaken met bijbehorende rechten. Op verzoek kan RGS+ daar ook bij ondersteunen.",
+      "categories": [
+        "Helpdesk"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-948"
+    },
+    {
+      "id": "faq-956",
+      "question": "Het rondje blijft draaien op een zwart scherm als ik de inspectie app open, wat kan ik hier aan doen?",
+      "answer": "De browser refreshen. Dit betekent namelijk dat je te lang inactief bent geweest.",
+      "categories": [
+        "Helpdesk"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-956"
+    },
+    {
+      "id": "faq-934",
+      "question": "Kan ik in scenario’s gebruik maken van standaarden, prijzenboeken en vrije invoer?",
+      "answer": "In het scenario kun je je eigen maatregelsset gebruiken, klant specifieke prijzenboeken raadplegen en er is altijd de mogelijkheid voor vrije invoer, bijvoorbeeld voor offertes van onderaannemers.",
+      "categories": [
+        "Planvorming"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-934"
+    },
+    {
+      "id": "faq-936",
+      "question": "Kan ik scenario’s exporteren en importeren?",
+      "answer": "Scenario’s kunnen worden geëxporteerd in zowel Excel- als XML-formaat. Voor het importeren is echter alleen het XML-formaat beschikbaar.",
+      "categories": [
+        "Planvorming"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-936"
+    },
+    {
+      "id": "faq-938",
+      "question": "Kan ik scenario’s bij elkaar optellen en vergelijken?",
+      "answer": "Ja. Het is mogelijk 1 of meerdere scenario’s bij elkaar op te tellen om te vergelijken met een ander scenario of een optelsom van meerdere scenario’s.",
+      "categories": [
+        "Planvorming"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-938"
+    },
+    {
+      "id": "faq-942",
+      "question": "Is de data uitwisselbaar met de woningcorporatie?",
+      "answer": "Alle data is uitwisselbaar. Zo kan er een export van de scenario’s worden gemaakt geschikt voor o-prognose, vastware en ibismain. Ook is alle data omtrent objecten en adressenlijsten eenvoudig te importeren.",
+      "categories": [
+        "Woningcoörporaties"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-942"
+    },
+    {
+      "id": "faq-932",
+      "question": "Kan ik RGS+ gebruiken voor verduurzamingsprojecten?",
+      "answer": "RGS+ is uitermate geschikt voor het doorrekenen van TCO bij renovatie en verduurzamingsprojecten. Welke impact geeft een ingreep nu op de onderhoudslasten in de toekomst.",
+      "categories": [
+        "Bouwkundig Aannemer"
+      ],
+      "url": "https://rgsplus.com/faq/#faq-932"
+    }
+  ]
+}

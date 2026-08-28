@@ -116,8 +116,12 @@ def _parse_block(block: str, index: int) -> Question | None:
         if not line:
             continue
         key, sep, value = line.lstrip("#").strip().partition(":")
-        if sep:
-            meta[key.strip().lower()] = value.strip()
+        if not sep:
+            continue
+        key, value = key.strip().lower(), value.strip()
+        # Repeating a key continues it rather than replacing it, so a long
+        # `# note:` can be wrapped over several lines the way a comment is.
+        meta[key] = f"{meta[key]} {value}".strip() if key in meta else value
 
     text = "\n".join(lines).strip()
     if not text:
@@ -155,8 +159,12 @@ def ask(url: str, key: str, question: Question, timeout: float, attempt: int) ->
     only context. Do not add it — reusing one would make every later answer
     depend on every earlier one, which is the exact thing this tool exists to
     rule out.
+
+    `ephemeral` tells the bridge to delete that session once the answer is out.
+    Nothing here will ever send a second turn, and a 28-question run would
+    otherwise leave 28 sessions behind in the agent's sidebar every time.
     """
-    body = {"message": question.text}
+    body = {"message": question.text, "ephemeral": True}
     if question.user:
         body["user"] = question.user
     if question.context:

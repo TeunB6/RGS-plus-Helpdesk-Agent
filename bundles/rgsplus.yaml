@@ -2,9 +2,18 @@
 # from the RGS+ Confluence knowledge base and drafts a Jira ticket when the
 # knowledge base cannot answer.
 #
-# One plugin carries the whole integration:
-#   atlassian -> Confluence (knowledge base, read-only) + Jira (search, read,
-#                DRY-RUN ticket drafting). Atlassian Cloud REST v3 / Confluence v2.
+# Two plugins, two knowledge sources:
+#   atlassian   -> Confluence (knowledge base, read-only) + Jira (search, read,
+#                  DRY-RUN ticket drafting). Atlassian Cloud REST v3 / Confluence v2.
+#   rgsplus-faq -> the public FAQ at rgsplus.com/faq, fetched and parsed at
+#                  runtime with a 24h cache and a committed snapshot fallback.
+#                  No credentials -- it is a public web page.
+#
+# They divide cleanly: Confluence answers "how do I", the FAQ answers "what
+# does it cost / is our data safe / does it integrate with X". The
+# rgsplus-faq-lookup skill carries the routing rules and, importantly, the
+# limits on repeating the prices the FAQ publishes. Read that skill before
+# changing either source.
 #
 # Mail is deliberately absent. RGS+ customers already mail the helpdesk
 # address and Jira turns that into a ticket automatically; the chatbot is a
@@ -42,15 +51,17 @@
 # the knowledge base, answer, or draft a ticket. A specialist would buy
 # nothing here and cost a round trip.
 
-description: "RGS+ helpdesk: answers customer questions from the Confluence knowledge base, escalating what it cannot answer to Jira ticket drafts (dry run)."
+description: "RGS+ helpdesk: answers customer questions from the Confluence knowledge base and the public RGS+ FAQ, escalating what it cannot answer to Jira ticket drafts (dry run)."
 
 skills:
   - customer-service
   - confluence-knowledge-lookup
+  - rgsplus-faq-lookup
   - jira-ticket-create
 
 tools:
   - atlassian
+  - rgsplus-faq
 
 profiles: []
 
@@ -69,3 +80,5 @@ secrets:
   # Optional: comma-separated Confluence space keys to scope KB search so
   # internal/archived spaces don't pollute results.
   - CONFLUENCE_SPACE_KEYS
+  # The FAQ plugin needs no secrets. These only tune it and all have
+  # defaults: RGSPLUS_FAQ_URL, RGSPLUS_FAQ_TTL, RGSPLUS_FAQ_OFFLINE.

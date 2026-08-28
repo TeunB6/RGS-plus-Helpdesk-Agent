@@ -24,6 +24,9 @@ Two independent things live here, and they are deliberately not merged:
                     ┌─────────────────────────────┐
                     │ rgsplus-agent   :8080       │  ← Hermes + webui
                     │  confluence_* → the KB (ro) │
+                    │  faq_*        → rgsplus.com │
+                    │                 /faq (ro,   │
+                    │                  public)    │
                     │  jira_*       → Jira Cloud  │
                     │                 (create =   │
                     │                  dry run)   │
@@ -89,8 +92,8 @@ restart the container.
 
 | Type | Used here for | Lives in |
 | --- | --- | --- |
-| **skill** | Markdown instructions: the flow, search-and-cite rules, escalation policy | `library/skills/support/<name>/SKILL.md` |
-| **tool** (plugin) | Python that talks to an API: `atlassian` | `library/tools/support/<name>/` |
+| **skill** | Markdown instructions: the flow, source routing, search-and-cite rules, escalation policy | `library/skills/support/<name>/SKILL.md` |
+| **tool** (plugin) | Python that talks to something remote: `atlassian`, `rgsplus-faq` | `library/tools/support/<name>/` |
 | **mcp** | An external tool server. *Not used for Atlassian* — see below | `library/mcp/<name>.yaml` |
 | **profile** | Nothing. This deployment has **no specialists** — see below | `library/profiles/<category>/<name>/` |
 
@@ -150,6 +153,53 @@ the v1 API, deliberately: v2 has no full-text search), with page bodies read
 through v2. `CONFLUENCE_SPACE_KEYS` scopes it to the knowledge-base spaces so
 internal and archived pages don't surface as answers.
 
+### Why the FAQ is cached when the knowledge base is not
+
+The public FAQ at rgsplus.com/faq is a second source, and it *is* copied into
+this repo — `library/tools/support/rgsplus-faq/faq-snapshot.json` — which
+looks like exactly the thing the section above rejects. The difference is that
+Confluence has a search API and the FAQ does not.
+
+The FAQ is a WordPress page whose custom post type is not exposed over
+`/wp-json` (it 404s), so there is no query endpoint. The only way to read it is
+to fetch the page and parse it — the whole page, every time. There is no
+"leave it where it lives and query it" option to prefer. Given that, the choice
+is not *copy vs. don't copy*, it's *where the copy lives and how it's refreshed*:
+
+- The plugin re-fetches the live page whenever its cache is older than
+  `RGSPLUS_FAQ_TTL` (24h default) and writes it to `~/.hermes/faq-cache/`, so
+  the running bot tracks the website by itself. Nobody maintains it.
+- The committed snapshot is the cold-start and offline fallback. Without it,
+  the first customer after a deploy — or any customer while rgsplus.com is
+  down — gets nothing.
+- Its git diff is the only record of what RGS+ changed on their public FAQ,
+  which matters because those answers quote prices and response times the bot
+  repeats to customers. `scripts/fetch-faq.py` prints that diff.
+
+Every tool response reports which of the three it served (`live`, `cache`,
+`snapshot`) and how old it is, so staleness is visible to the agent rather
+than silent.
+
+Parsing targets `article.faq[id=faq-NNNN]` and the `faq-block__title` category
+headings. The `id` is a WordPress post id, stable across edits, and gives every
+answer a citable deep link. Six entries are cross-listed under two categories,
+so 42 article elements collapse to 36 items with a `categories` list.
+
+The page also carries Yoast JSON-LD `FAQPage` data, which would be the more
+obvious target. It isn't used: it omits categories and disagrees with the
+rendered page about which entries exist. Its question count is kept only as a
+canary — a large gap means the markup moved and the parser is dropping
+entries silently.
+
+**Search is IDF-weighted, and that is load-bearing.** Every second entry
+contains "RGS+", so a plain term-overlap score answers "hoe koppel ik een
+grootboekrekening aan een RGS-code" with "Hoe veilig is RGS+?" — a confident
+citation of an unrelated answer, which is the worst failure this bot has.
+Weighting terms by rarity drives the product name to nearly zero without a
+hand-maintained stopword list, and scores are normalised to 0.0–1.0 so one
+threshold works across queries. `scripts/test-faq-plugin.py` pins that
+behaviour with negative cases; run it after touching the scorer.
+
 ## Where things end up at runtime
 
 ```
@@ -161,6 +211,10 @@ image                                container volume
   tools/                  ──seed──▶  ~/.hermes/plugins/ + config.yaml (plugins.enabled:)
   profiles/               ──seed──▶  ~/.hermes/profiles/   (empty here)
 .jira-dryrun/             ◀─mount──  ~/.hermes/jira-dryrun/ (ticket drafts out)
+
+                                     ~/.hermes/faq-cache/   (written at runtime
+                                       by the rgsplus-faq plugin; not seeded,
+                                       not mounted, safe to delete)
 ```
 
 `.jira-dryrun/` is mounted **outwards**: the drafts are the deliverable of an
@@ -174,6 +228,9 @@ escalation, so they must be readable without `docker exec` and must survive
 | New helpdesk behaviour, expressible as instructions? | New **skill** in `library/skills/support/`, add to `bundles/rgsplus.yaml` and the client manifest |
 | New Atlassian operation the bot needs? | New tool in `library/tools/support/atlassian/__init__.py` — and think hard about whether the bot should be able to do it, especially if it writes |
 | Answer quality problem? | Almost always the Confluence knowledge base, or `CONFLUENCE_SPACE_KEYS` scoping — not code |
+| Bot cites the FAQ for a product question, or misses one it covers? | The scorer or the routing table in `rgsplus-faq-lookup`. Add the case to `scripts/test-faq-plugin.py` first, then fix |
+| RGS+ changed their public FAQ? | Nothing — the plugin re-fetches within 24h. Run `scripts/fetch-faq.py --write` to refresh the committed fallback and see the diff |
+| Another public page worth answering from? | Another plugin like `rgsplus-faq`, not a second source inside it — one plugin per source keeps the citation honest |
 | Another system to reach (e.g. RGS+'s own API)? | New **plugin** if it's a handful of endpoints; **mcp** fragment if a server already exists |
 | Another agent module should handle it? | Register it as a **peer** on the bridge |
 | Edited a skill/plugin and nothing changed? | Re-run `scripts/stage-build-context.sh`, rebuild, and delete the item from the `hermes-data` volume — seeding is first-write-only |

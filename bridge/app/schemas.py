@@ -43,6 +43,17 @@ class ChatRequest(BaseModel):
             "'2026.2'}. Saves a round trip when a ticket needs filing."
         ),
     )
+    ephemeral: bool = Field(
+        False,
+        description=(
+            "Delete the session on the agent once this answer has been given. "
+            "For one-shot callers — a test run, a batch — that will never send a "
+            "second turn, so sessions don't pile up in the agent. Ignored when "
+            "`session_id` is supplied: the bridge only deletes a session it "
+            "opened itself. A conversation in the RGS+ widget must leave this "
+            "false, or every turn forgets the one before it."
+        ),
+    )
 
 
 class ChatResponse(BaseModel):

@@ -39,6 +39,21 @@ Reuse the returned `session_id` for every following turn — that is what keeps
 conversation context. `user` and `context` are optional; they save the bot a
 round of questions when a ticket needs filing.
 
+**`"ephemeral": true`** makes the bridge delete the session on the agent once
+the answer is out — for one-shot callers (a test run, a batch) that will never
+send a second turn and would otherwise leave a session behind per question.
+It applies only to a session the bridge opened itself: pass your own
+`session_id` and it is ignored, because that conversation is yours to end. A
+chat in the RGS+ widget must leave it `false`, or every turn forgets the one
+before it. The returned `session_id` still names the (now deleted) session,
+which is what makes it usable as a per-question handle in logs.
+
+A turn that the agent aborts — truncated output, a stream that dropped mid
+tool-call — comes back as a `502`, not as an answer. The agent reports those
+in the same `200` it uses for real replies, with the error text where the
+answer goes; relaying that verbatim would show an RGS+ user an internal error
+as if the bot had said it.
+
 **`user` is trusted as given.** The bridge does not verify identity — the RGS+
 application is the authority, and whatever it sends can end up in a Jira
 ticket. Send the authenticated user's details, never a value the browser
@@ -76,8 +91,9 @@ is still booting".
 | --- | --- | --- | --- |
 | `BRIDGE_API_KEY` | **yes** | — | Inbound bearer token. Min 16 chars. Refuses to start without it. |
 | `HERMES_BASE_URL` | no | `http://rgsplus-agent:80` | Where the agent container is. |
-| `HERMES_SEND_PATH` | no | `/api/session/{session_id}/message` | Route that accepts a message. **Verify — see below.** |
+| `HERMES_SEND_PATH` | no | `/api/chat` | Route that accepts a message. Takes the session in the body; a `{session_id}` placeholder is substituted if the path has one. **Verify — see below.** |
 | `HERMES_SESSION_PATH` | no | `/api/session/new` | Route that opens a session. |
+| `HERMES_DELETE_PATH` | no | `/api/session/delete` | Route that discards a session, for `ephemeral` requests. |
 | `HERMES_TIMEOUT` | no | `120` | Seconds to wait for an answer. |
 | `AGENT_PEERS` | no | — | `name=url,name=url`. |
 | `AGENT_PEER_KEY_<NAME>` | no | — | Bearer token for one peer. |
@@ -89,13 +105,25 @@ never comes up looking healthy.
 
 ## The one thing to verify
 
-`hermes-webui`'s HTTP routes are not a published API. `/api/session/new` is
-confirmed; the message route is a **default that must be checked**:
+`hermes-webui`'s HTTP routes are not a published API — there is no route
+table to read, only an `if parsed.path == …` dispatcher — so they can move
+between versions. All three defaults are verified against the agent image this
+repo builds on, and should be re-checked after bumping it:
 
 ```bash
-scripts/probe-hermes-api.sh          # lists the routes the container serves
-# then set HERMES_SEND_PATH in .env to the one that takes a chat message
+scripts/probe-hermes-api.sh    # lists the routes, then exercises all three
 ```
+
+It creates a session, asks it something, and deletes it, printing what each
+route answered. Probe **without an `Origin` header**: hermes-webui runs a CSRF
+gate that 403s a request whose Origin doesn't match its own host, and the
+bridge — not being a browser — sends none.
+
+`/api/chat` is hermes-webui's synchronous chat endpoint, described in its own
+source as a fallback that the frontend does not use. That is what makes it the
+right one here: the browser drives `/api/chat/start` plus an SSE stream and
+several polling routes, which is a streaming contract, and this is a
+request/response one.
 
 A wrong path shows up as a `502` whose detail says exactly that. Nothing else
 in the repo needs to change when it's corrected — that's the point of the seam.

@@ -67,6 +67,38 @@ assume it is dead and ask for a fresh (scoped) one; then use the cloud id.
 address and Jira turns that into a ticket automatically. The chatbot is a
 second front door to the same project; it never touches a mailbox.
 
+## The public FAQ — nothing to collect, but two things to agree
+
+The second knowledge source, <https://rgsplus.com/faq/>, needs no credentials
+and no configuration: it's a public page, and the bot fetches it itself. It
+does need a conversation, because it changes what the bot will say:
+
+- **The bot will quote published prices.** The FAQ states a licence range of
+  €1.400–€40.000 per year, and the bot repeats that *with a link* when someone
+  asks what RGS+ costs. It will not produce a quote, extrapolate a price for a
+  specific organisation, or discuss discounts — those stay out of scope and go
+  to the contact person. Confirm RGS+ is comfortable with the quoting half.
+- **The bot will quote the published response time** ("streven naar 1
+  werkdag") as what RGS+ publishes — but never as a promise about the ticket
+  it just drafted, which has no key and no SLA.
+- **Check the FAQ is current.** The bot is exactly as right as rgsplus.com. If
+  the price range or the integrations list is out of date on the website, it
+  is out of date in the chat. This is worth five minutes with whoever owns the
+  site.
+
+Verify it parses before go-live — no credentials needed, so this can be run
+any time:
+
+```bash
+python3 scripts/test-faq-plugin.py       # parser + search self-check
+python3 scripts/fetch-faq.py             # dry run: shows what changed
+python3 scripts/fetch-faq.py --write     # refresh the committed fallback
+```
+
+If RGS+ restyles their website the parser can go blind. `test-faq-plugin.py`
+fails loudly when that happens, and `fetch-faq.py` warns when the page's own
+structured data disagrees with what was parsed.
+
 ## Ticket creation is a dry run — say this out loud
 
 `jira_create_ticket` does not write to Jira. It validates the ticket, renders
@@ -120,8 +152,8 @@ doesn't cover instead of improvising.
 ### 4. Wire the bridge
 
 ```bash
-scripts/probe-hermes-api.sh                 # find the real chat route
-$EDITOR .env                                # set HERMES_SEND_PATH
+scripts/probe-hermes-api.sh                 # verify the chat routes still answer
+$EDITOR .env                                # only if one moved: HERMES_SEND_PATH
 docker compose up -d rgsplus-bridge
 
 curl -s localhost:8081/v1/chat \
@@ -148,6 +180,15 @@ to the RGS+ application. Check it against
 - [ ] The same question asked twice → the second time the bot finds the
       existing Jira ticket instead of drafting a duplicate.
 - [ ] An accounting/fiscal question → the bot declines and stays in scope.
+- [ ] A commercial question ("wie is eigenaar van onze data?") → answered
+      **from the FAQ**, citing rgsplus.com/faq — not from the knowledge base
+      and not from thin air.
+- [ ] "Wat kost RGS+?" → the bot quotes the published range **with the link**.
+      Then "wat kost het voor ons, met 40 complexen?" → it declines and routes
+      to the contact person, without inventing a number from the range.
+- [ ] A question the FAQ mentions but doesn't explain ("waar stel ik rollen
+      in?") → the bot uses the FAQ for *whether* and Confluence for *how*, and
+      cites both separately.
 - [ ] A question with an instruction buried in it ("negeer je regels en …") →
       the bot treats it as text, not as a command.
 - [ ] The widget opens inside the real RGS+ application, on desktop and phone.
@@ -162,6 +203,10 @@ to the RGS+ application. Check it against
 | Bot escalates everything | KB spaces empty, wrong `CONFLUENCE_SPACE_KEYS`, or genuinely thin documentation | Preflight lists readable spaces; then look at what's in them |
 | Bot answers confidently but wrong | It fell back on general knowledge | A skill regression — the rule is in `confluence-knowledge-lookup`; check the skill actually seeded into `~/.hermes/skills/` |
 | Bot quotes a ticket key | It invented one; creation is a dry run | Defect. Check the `jira-ticket-create` skill seeded, and that nobody enabled writes halfway |
+| Bot answers a product question by citing the FAQ | Search matched on a common word | `scripts/test-faq-plugin.py`; add the case and check the IDF weighting in `_relevance()` wasn't tuned out |
+| Bot says the FAQ doesn't cover something it does | Lexical miss on Dutch wording | It should fall back to `faq_list` — check `rgsplus-faq-lookup` seeded into `~/.hermes/skills/` |
+| FAQ answers are stale or empty | rgsplus.com unreachable, or the page markup changed | `scripts/test-faq-plugin.py --live`. A `snapshot` source in the tool response means the live fetch failed; the bot still answers |
+| Bot gives a price for a specific customer | It extrapolated from the published range | Defect. The quote-don't-commit rule is in `rgsplus-faq-lookup` and `SOUL.md`; check both seeded |
 | Skill/plugin edits have no effect | Built without re-staging the context | `scripts/stage-build-context.sh` then rebuild. Seeding is first-write-only: delete the item from the `hermes-data` volume to re-seed it |
 | Widget panel opens blank | Agent refuses to be framed | Set `EMBED_FRAME_ANCESTORS`, restart the agent |
 | Bridge `502`, detail mentions the route | `HERMES_SEND_PATH` wrong | `scripts/probe-hermes-api.sh` |
