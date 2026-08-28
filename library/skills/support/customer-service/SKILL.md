@@ -33,13 +33,19 @@ customer question
       │
       ├─ 1. understand it        ── unclear?  ask ONE round of questions
       │
-      ├─ 2. READ, don't search. Both sources are already loaded:
+      ├─ 2. READ, don't search. All three sources are already loaded:
       │       ├─ "how do I / it's broken"  → rgsplus-handleiding  (the whole
       │       │                              Confluence manual, inlined)
+      │       ├─ not in the manual?        → rgsplus-praktijkantwoorden
+      │       │                              (what the helpdesk answers in
+      │       │                              practice, from resolved tickets —
+      │       │                              covers mobiel, rapporten, rechten,
+      │       │                              import, koppelingen, which the
+      │       │                              manual barely documents)
       │       └─ "what does it cost / is   → rgsplus-faq-lookup
       │           our data safe / does it
       │           integrate with X"
-      │       (unsure? read both — they are already in front of you)
+      │       (unsure? read all three — they are already in front of you)
       │       Only call confluence_* if you have positive reason to think a
       │       page changed since the snapshot date. See "Why you already have
       │       the manual" below.
