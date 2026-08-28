@@ -33,6 +33,19 @@ the middle of the text -- all fall back to `state="answer"` with no citations
 and the reply untouched. A missing trailer must never cost the user their
 answer, so nothing here raises.
 
+⚠️ KNOWN LEAK -- THE WIDGET PATH DOES NOT COME THROUGH HERE.
+`widget/rgsplus-chat.js` iframes the agent UI directly (`data-agent-url`, port
+8080); only the RGS+ application's server-side calls go through the bridge on
+8081. So on the widget path nothing strips the trailer, and the customer sees a
+raw ```sam-meta code block under every answer.
+
+The fix belongs in the agent UI, not here -- it is served by the uppr_hermes
+image, which owns the chat renderer, and it should hide fenced blocks whose
+language tag is `sam-meta`. Until that ships, either land that renderer change
+alongside this, or keep the widget pointed at a build whose SOUL/skills do not
+ask for the trailer. Do not "fix" it by dropping the trailer: the bridge
+contract in schemas.py depends on it.
+
 Note for the UI: `state="answer"` with an EMPTY `citations` list means the model
 answered without grounding itself in a page. Treat that as unverified.
 """

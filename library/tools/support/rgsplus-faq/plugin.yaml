@@ -1,0 +1,15 @@
+name: rgsplus-faq
+version: "1.0"
+description: >-
+  The public RGS+ FAQ (rgsplus.com/faq) as a second, read-only knowledge source
+  alongside Confluence. Fetches and parses the live page, caches it with a TTL,
+  and falls back to a committed snapshot. Covers commercial and general
+  questions: pricing, licensing, security, data ownership, implementation.
+# No credentials: the FAQ is a public web page. Everything below is optional
+# and has a working default -- see the module docstring.
+requires_env: []
+optional_env:
+  - RGSPLUS_FAQ_URL
+  - RGSPLUS_FAQ_TTL
+  - RGSPLUS_FAQ_OFFLINE
+  - RGSPLUS_FAQ_CACHE_DIR

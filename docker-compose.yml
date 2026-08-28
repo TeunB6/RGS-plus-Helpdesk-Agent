@@ -69,12 +69,24 @@ services:
       # search doesn't drag in internal or archived spaces.
       CONFLUENCE_SPACE_KEYS: "${CONFLUENCE_SPACE_KEYS:-}"
 
+      # ── The public RGS+ FAQ (second knowledge source) ──
+      # No credentials: rgsplus.com/faq is a public page. All optional; the
+      # plugin has working defaults and ships a committed snapshot, so leaving
+      # every one of these empty is a supported configuration.
+      RGSPLUS_FAQ_URL: "${RGSPLUS_FAQ_URL:-}"
+      # Seconds before the cached copy is re-fetched (default 86400 = 24h).
+      RGSPLUS_FAQ_TTL: "${RGSPLUS_FAQ_TTL:-}"
+      # "true" pins the bot to the committed snapshot and stops it reaching
+      # the internet at all — for an air-gapped deployment, or to freeze the
+      # FAQ text for a demo.
+      RGSPLUS_FAQ_OFFLINE: "${RGSPLUS_FAQ_OFFLINE:-}"
+
       # Which host origins may iframe the agent UI. Empty = framing blocked.
       EMBED_FRAME_ANCESTORS: "${EMBED_FRAME_ANCESTORS:-}"
 
       # start.sh copies each listed var into ~/.hermes/.env so plugin handlers
       # can read them. Anything the plugins need MUST be listed here.
-      HERMES_PASSTHROUGH_VARS: "ATLASSIAN_EMAIL,JIRA_API_KEY,ATLASSIAN_SITE_URL,ATLASSIAN_CLOUD_ID,JIRA_PROJECT_KEY,CONFLUENCE_SPACE_KEYS"
+      HERMES_PASSTHROUGH_VARS: "ATLASSIAN_EMAIL,JIRA_API_KEY,ATLASSIAN_SITE_URL,ATLASSIAN_CLOUD_ID,JIRA_PROJECT_KEY,CONFLUENCE_SPACE_KEYS,RGSPLUS_FAQ_URL,RGSPLUS_FAQ_TTL,RGSPLUS_FAQ_OFFLINE"
 
   rgsplus-bridge:
     build:
@@ -93,7 +105,9 @@ services:
       BRIDGE_API_KEY: "${BRIDGE_API_KEY:-}"
       # Outbound: where the Hermes agent lives (container network, not host).
       HERMES_BASE_URL: "http://rgsplus-agent:80"
-      HERMES_SEND_PATH: "${HERMES_SEND_PATH:-/api/session/{session_id}/message}"
+      HERMES_SEND_PATH: "${HERMES_SEND_PATH:-/api/chat}"
+      HERMES_SESSION_PATH: "${HERMES_SESSION_PATH:-/api/session/new}"
+      HERMES_DELETE_PATH: "${HERMES_DELETE_PATH:-/api/session/delete}"
       HERMES_TIMEOUT: "${HERMES_TIMEOUT:-120}"
       # Other agent modules this one may call, name=url,name=url.
       # Per-peer token: AGENT_PEER_KEY_<NAME_UPPERCASED_WITH_UNDERSCORES>.

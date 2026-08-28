@@ -6,13 +6,15 @@
 skills:
   - customer-service
   - confluence-knowledge-lookup
+  - rgsplus-faq-lookup
   - jira-ticket-create
 
 tools:
   - atlassian
+  - rgsplus-faq
 
 # No specialists. The main agent (SOUL.md) runs the whole flow itself:
-# search the Confluence knowledge base, answer with a citation, or draft a
+# search the two knowledge sources, answer with a citation, or draft a
 # Jira ticket.
 profiles: []
 

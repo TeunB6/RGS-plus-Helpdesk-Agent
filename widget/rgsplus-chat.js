@@ -15,6 +15,15 @@
  * EMBED_FRAME_ANCESTORS in the deployment's .env. Without it the browser
  * blocks the iframe and the panel stays blank.
  *
+ * ⚠️ This widget talks to the agent UI (:8080) DIRECTLY, not to the bridge
+ * (:8081). It therefore does not get the parsed `state` / `citations` /
+ * `draft` that /v1/chat returns — and, more visibly, nothing strips the
+ * ```sam-meta trailer the customer-service skill appends to every reply, so
+ * it renders as a code block under each answer. See the KNOWN LEAK note in
+ * bridge/app/agent_meta.py; the fix is in the agent UI's renderer, upstream
+ * in uppr_hermes. Anything that needs the structured answer state must call
+ * the bridge server-side instead of embedding this.
+ *
  * data- attributes, all optional except data-agent-url:
  *   data-agent-url   required. Origin serving the agent UI.
  *   data-title       panel header text.        default "Helpdesk"
