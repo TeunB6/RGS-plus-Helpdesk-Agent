@@ -26,9 +26,17 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from .config import ConfigError, Settings
-from .hermes_client import HermesClient, HermesError
+from .hermes_client import AgentReply, HermesClient, HermesError
 from .peers import PeerError, PeerRegistry
-from .schemas import ChatRequest, ChatResponse, HealthResponse, PeerInfo, PeersResponse
+from .schemas import (
+    ChatRequest,
+    ChatResponse,
+    Citation,
+    HealthResponse,
+    PeerInfo,
+    PeersResponse,
+    TicketDraft,
+)
 
 # Fail loudly at import, before the server binds a port: a misconfigured
 # bridge should never come up looking healthy.
@@ -122,14 +130,29 @@ async def chat(payload: ChatRequest, request: Request) -> ChatResponse:
     message = _with_context(payload)
 
     try:
-        reply = await hermes.send(session_id, message)
+        answer = await hermes.send(session_id, message)
     except HermesError as e:
         # 502: the bridge is fine, the thing behind it is not. The detail is
         # for RGS+'s logs; the RGS+ app should show its users something kinder.
         log.error("chat failed session=%s: %s", session_id, e)
         raise HTTPException(status_code=502, detail=f"Agent unavailable: {e}") from e
 
-    return ChatResponse(session_id=session_id, reply=reply)
+    # Logged because a run of state=unknown means the knowledge base has a gap,
+    # and a run of state=kb_unreachable means our Atlassian credentials broke —
+    # two very different alarms that used to look identical from outside.
+    log.info(
+        "chat ok session=%s state=%s citations=%d draft=%s",
+        session_id, answer.state, len(answer.citations), bool(answer.draft),
+    )
+
+    return ChatResponse(
+        session_id=session_id,
+        reply=answer.text,
+        state=answer.state,
+        citations=[Citation(**c) for c in answer.citations],
+        draft=TicketDraft(**answer.draft) if answer.draft else None,
+        confidence=answer.confidence,
+    )
 
 
 @app.get("/v1/peers", response_model=PeersResponse, tags=["peers"],
@@ -170,7 +193,18 @@ async def chat_with_peer(name: str, payload: ChatRequest, request: Request) -> C
         log.error("peer call failed peer=%s session=%s: %s", name, session_id, e)
         raise HTTPException(status_code=502, detail=str(e)) from e
 
-    return ChatResponse(session_id=session_id, reply=reply, peer=name)
+    # A peer speaks the same /v1/chat contract, so it may annotate its reply the
+    # same way. Parse it here too rather than leaking a trailer to the caller.
+    answer = AgentReply.parse(reply)
+    return ChatResponse(
+        session_id=session_id,
+        reply=answer.text,
+        peer=name,
+        state=answer.state,
+        citations=[Citation(**c) for c in answer.citations],
+        draft=TicketDraft(**answer.draft) if answer.draft else None,
+        confidence=answer.confidence,
+    )
 
 
 def _with_context(payload: ChatRequest) -> str:

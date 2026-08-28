@@ -21,10 +21,12 @@ from __future__ import annotations
 
 import logging
 import uuid
+from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
+from . import agent_meta
 from .config import Settings
 
 log = logging.getLogger("bridge.hermes")
@@ -32,6 +34,28 @@ log = logging.getLogger("bridge.hermes")
 
 class HermesError(RuntimeError):
     """The agent could not answer. Message is safe to show an operator, not a user."""
+
+
+@dataclass
+class AgentReply:
+    """The agent's answer, with its trailer parsed off. See agent_meta.py."""
+
+    text: str
+    state: str = agent_meta.DEFAULT_STATE
+    citations: list[dict[str, Any]] = field(default_factory=list)
+    draft: dict[str, Any] | None = None
+    confidence: float | None = None
+
+    @classmethod
+    def parse(cls, raw: str) -> "AgentReply":
+        text, meta = agent_meta.split(raw)
+        return cls(
+            text=text,
+            state=meta["state"],
+            citations=meta["citations"],
+            draft=meta["draft"],
+            confidence=meta["confidence"],
+        )
 
 
 class HermesClient:
@@ -69,7 +93,7 @@ class HermesClient:
                 return value["id"]
         return f"local-{uuid.uuid4().hex[:16]}"
 
-    async def send(self, session_id: str, message: str) -> str:
+    async def send(self, session_id: str, message: str) -> AgentReply:
         path = self._settings.hermes_send_path.replace("{session_id}", session_id)
         url = self._settings.hermes_base_url + path
 
@@ -101,7 +125,7 @@ class HermesClient:
         reply = _extract_reply(_json_or_empty(response), response.text)
         if not reply:
             raise HermesError("the agent returned an empty reply")
-        return reply
+        return AgentReply.parse(reply)
 
 
 def _json_or_empty(response: httpx.Response) -> dict[str, Any]:
