@@ -56,7 +56,8 @@ behind an explicit `ATLASSIAN_ALLOW_WRITES=true` gate, then revisiting the
 | [bundles/rgsplus.yaml](bundles/rgsplus.yaml) | The helpdesk vertical: which library items an RGS+ deployment gets. |
 | [clients/rgsplus/](clients/rgsplus/) | This client's manifest, branding and `SOUL.md`. No specialist profiles — the main agent runs the whole flow. |
 | [widget/](widget/) | Drop-in `<script>` chat launcher for the RGS+ application. |
-| [scripts/](scripts/) | `stage-build-context.sh` (assemble the Docker build context — **run before every build**), `preflight-atlassian.py` (verify the day-of credentials), `probe-hermes-api.sh`. |
+| [scripts/](scripts/) | `stage-build-context.sh` (assemble the Docker build context — **run before every build**), `preflight-atlassian.py` (verify the day-of credentials), `eval-questions.py` (ask the running bot a list of questions), `probe-hermes-api.sh`. |
+| [evals/](evals/) | Question files to run the bot against — real helpdesk mails plus the cases where it should decline or escalate. |
 | [docs/DAY-OF-CHECKLIST.md](docs/DAY-OF-CHECKLIST.md) | What to collect on the day, and what to do with it. |
 
 Architecture rationale — why library/bundle/client and not one monolith — is in
@@ -130,6 +131,33 @@ curl -s localhost:8081/v1/chat \
   -H 'Content-Type: application/json' \
   -d '{"session_id":"demo-1","message":"Hoe koppel ik een grootboekrekening aan een RGS-code?"}' | jq
 ```
+
+## Testing what it actually answers
+
+```bash
+python3 scripts/eval-questions.py evals/helpdesk-nl.txt
+```
+
+Every question in the file is sent **without a `session_id`**, so the bridge
+opens a fresh Hermes session for each one. No question can see another's
+answer, and each is a first turn — the same cold start a user gets when they
+open the widget and paste a mail. The run aborts with a non-zero exit if two
+answers ever come back on the same session id, because then they are not
+independent and the results mean nothing.
+
+Answers land in `evals/runs/<file>-<n>/` — `results.json` to diff against the
+previous run, `transcript.md` to read. Useful flags: `--repeat 3` (how much
+does the same question move?), `--only <id>`, `--concurrency 4`, `--dry-run`.
+
+[evals/helpdesk-nl.txt](evals/helpdesk-nl.txt) holds real helpdesk mails plus
+the cases the bot is supposed to *refuse*: billing, fiscal advice, another
+customer's ticket, a pasted password, an instruction to ignore its rules. Each
+carries a `# note:` saying what the right behaviour is — the file is the
+checklist, the tool only collects the answers. Judging them is still a human
+reading `transcript.md`.
+
+Ticket creation is a dry run, so escalations in a test run leave drafts under
+`.jira-dryrun/` and touch nothing in Jira.
 
 ## Embedding in the RGS+ application
 

@@ -15,3 +15,7 @@ node_modules/
 # Jira ticket drafts written by jira_create_ticket's dry run. They contain
 # verbatim customer questions — treat as customer data, keep out of git.
 .jira-dryrun/
+
+# Answers from scripts/eval-questions.py. The question files under evals/ are
+# committed; what the agent replied is run output, and grows every run.
+evals/runs/
