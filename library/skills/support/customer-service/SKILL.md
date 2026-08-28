@@ -35,10 +35,13 @@ customer question
       │
       ├─ 2. pick the source and search
       │       ├─ "how do I / it's broken"  → confluence-knowledge-lookup
-      │       └─ "what does it cost / is   → rgsplus-faq-lookup
-      │           our data safe / does it
-      │           integrate with X"
-      │       (unsure? search both — they're small and cheap)
+      │       ├─ "what does it cost / is   → rgsplus-faq-lookup
+      │       │   our data safe / does it
+      │       │   integrate with X"
+      │       └─ "my import did nothing"   → import_check (NOT a search:
+      │                                      the answer is in their file,
+      │                                      not in any page)
+      │       (unsure between the first two? search both — small and cheap)
       │
       ├─ 3. did a source answer it?
       │       ├─ fully    → answer + cite that source.         done

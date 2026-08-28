@@ -226,7 +226,15 @@ every correct row.
 
 This maps directly onto the second of the three endpoints sketched in `notes/plan.md` at
 `9dfdcd5` — *"xlsx sjabloon invullen en versturen, human in the loop"*. That file was removed
-in `9c2442f`; the text answer and the Jira draft are built, **the xlsx path is not**.
+in `9c2442f`.
+
+**Now ported**, as `library/tools/support/import_check/`, with both deliberate behaviours
+above intact. It landed as an agent **tool** rather than the third bridge endpoint that was
+sketched: the agent calls it mid-conversation, so RGS+ does not have to build an upload flow
+before this is worth anything. The file still has to reach the container — `docker-compose`
+bind-mounts `./.uploads`, and the tool refuses any path outside it. What is *not* built is a
+customer-facing upload path in the RGS+ application itself; today a human puts the workbook in
+that directory.
 
 ---
 
@@ -424,7 +432,10 @@ covered:
   failure mode.
 
 There is also no case that submits an actual broken `.xlsx` (`import-formaat` is a
-how-question), which follows from the xlsx endpoint not existing yet — see §5.
+how-question). That *followed* from the validator not existing; with `import_check` in the
+bundle it no longer does. A case that puts a deliberately broken workbook in the upload
+directory and checks the bot names the skipped row — rather than searching Confluence and
+declaring it undocumented — is now the obvious next eval to write.
 
 **On model choice.** Establish the quality ceiling first on a strong (EU-hosted) model, measure,
 *then* descend to cheaper and local until quality drops. Starting cheap makes every bad answer
