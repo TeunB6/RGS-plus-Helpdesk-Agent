@@ -121,6 +121,27 @@ RUN python3 -m venv /hermes-webui/.venv --without-pip \
 RUN HERMES_WEBUI_PYTHON=/usr/local/lib/hermes-agent/venv/bin/python3 \
         python3 bootstrap.py || true
 
+# ── RGS+ addition: openpyxl, for the import_check plugin ──
+#
+# This is the one local addition to the base rather than a path fixup, and it
+# is the concrete reason vendoring was worth doing. import_check opens
+# customer .xlsx workbooks and needs openpyxl; without it every single
+# validation returns
+#
+#     "ERROR: openpyxl is not installed in the agent image"
+#
+# which reaches a customer as the bot claiming it cannot read their file. While
+# the base lived in another repo this could only be WARNED about at staging
+# time (see the deleted scripts/stage-build-context.sh) and fixed there. Now
+# that the Dockerfile is here, it is just installed.
+#
+# Into the hermes-agent venv specifically: both the gateway and the webui run
+# from it (`hermes gateway run` and `/hermes-webui/server.py` are both
+# /usr/local/lib/hermes-agent/venv/bin/python), and plugin handlers load
+# in-process, so this is the interpreter that has to import it.
+RUN /usr/local/lib/hermes-agent/venv/bin/python3 -m pip install --no-cache-dir openpyxl \
+    && /usr/local/lib/hermes-agent/venv/bin/python3 -c "import openpyxl; print('openpyxl ' + openpyxl.__version__)"
+
 # Which clients/<name>/ directory brands and seeds this image. Defaulted to
 # rgsplus (upstream defaults to "uppr", which does not exist here) so a bare
 # `docker build -f agent/Dockerfile .` works without the build-arg. Compose
